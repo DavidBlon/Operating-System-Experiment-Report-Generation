@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ubuntu Terminal - Ultimate Precision Edition</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="device-name-overlay" id="deviceNameOverlay">
+    <div class="device-name-dialog">
+        <div class="device-name-title">设备命名</div>
+        <div class="device-name-body">
+            <div class="device-name-label">欢迎使用 Ubuntu Terminal！<br>请先输入您的用户名：</div>
+            <input type="text" class="device-name-input" id="deviceNameInput" placeholder="请输入用户名" autofocus>
+
+            <div style="margin-top:18px;border-top:1px solid #bcbab6;padding-top:14px;">
+                <div style="font-size:14px;color:#2d2d2d;margin-bottom:10px;">虚拟主机后缀：</div>
+                <label style="display:block;font-size:14px;color:#2d2d2d;margin-bottom:8px;cursor:pointer;">
+                    <input type="radio" name="vmSuffix" value="-VirtualBox" checked style="margin-right:6px;">-VirtualBox
+                </label>
+                <label style="display:block;font-size:14px;color:#2d2d2d;margin-bottom:8px;cursor:pointer;">
+                    <input type="radio" name="vmSuffix" value="-VMware" style="margin-right:6px;">-VMware
+                </label>
+                <label style="display:block;font-size:14px;color:#2d2d2d;margin-bottom:8px;cursor:pointer;">
+                    <input type="radio" name="vmSuffix" value="" style="margin-right:6px;">无
+                </label>
+            </div>
+        </div>
+        <div class="device-name-footer">
+            <button class="device-name-btn primary" id="deviceNameConfirm">确定</button>
+        </div>
+    </div>
+</div>
+
+<div class="workspace">
+    <div class="shortcut-panel">
+        <div class="shortcut-header">📋 实验快捷操作</div>
+        <div id="expListContainer"></div>
+        <div class="shortcut-footer">
+            <button class="manage-gear-btn" onclick="openManagePanel()" title="自定义实验与题目">⚙ 自定义题目</button>
+        </div>
+    </div>
+    <div id="terminal">
+    <div id="title-bar">
+        <div class="title">username@username-VirtualBox: ~</div>
+    </div>
+    <div id="output-area">
+        <div class="output-row"></div>
+        <div id="history"></div>
+        <div class="input-line" id="input-container">
+            <span class="prompt" id="current-prompt">username@username-VirtualBox:~$ </span>
+            <input type="text" id="cmd" class="cmd-input" autofocus autocomplete="off" spellcheck="false">
+        </div>
+        
+        <div class="group-settings-modal" id="groupModal">
+            <div class="group-modal-title">组设置 <div class="group-modal-close" onclick="closeGroupModal()">✕</div></div>
+            <div class="group-modal-body">
+                <div class="group-list-label">系统中可用的组:</div>
+                <div class="group-main-layout">
+                    <div class="group-list-scrollbox" id="groupListBox"></div>
+                    <div class="group-right-btns">
+                        <button class="photo-gtk-btn" onclick="addNewGroupIntoGui()">添加(A)</button>
+                        <button class="photo-gtk-btn">属性(P)</button>
+                        <button class="photo-gtk-btn" onclick="deleteGroupFromGui()">删除(D)</button>
+                    </div>
+                </div>
+            </div>
+            <div class="group-footer-bar">
+                <button class="photo-gtk-btn">帮助(H)</button>
+                <button class="photo-gtk-btn" onclick="closeGroupModal()">关闭(C)</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+</div>
+
+<div class="help-toggle" id="helpToggle" onclick="toggleHelp()">?</div>
+<div class="help-panel" id="helpPanel">
+    <div class="help-title">使用说明</div>
+    <span class="help-section">终端使用</span>
+    <strong>1.</strong> 点击左侧 <strong>实验按钮</strong> 展开需求列表<br>
+    <strong>2.</strong> 点击 <strong>需求项</strong>，命令或脚本自动填入<br>
+    <strong>3.</strong> 按 <strong>Enter</strong> 键执行命令<br>
+    <strong>4.</strong> 也可直接在终端输入框中 <strong>输入命令</strong><br>
+    <strong>5.</strong> 输入 <strong>sudo</strong> 命令需验证密码（默认密码为当前用户名）<br>
+    <strong>6.</strong> 按 <strong>Ctrl+Shift+P</strong> 自动填充 sudo 密码<br>
+    <strong>7.</strong> 终端输出文本可 <strong>直接点击修改</strong><br>
+    <strong>8.</strong> 在终端弹窗内点击 <strong>用户设置 / 组设置</strong> 打开图形化管理（实验一相关）<br>
+    <strong>9.</strong> 点击标记为 <strong>脚本实验</strong> 的主按钮 打开脚本编辑器<br>
+    <strong>10.</strong> 在脚本编辑器中 <strong>保存</strong> 脚本后，可在终端执行<br>
+    <span class="help-section">自定义题目（新增）</span>
+    <strong>11.</strong> 点击左侧底部 <strong>⚙ 自定义题目</strong> 打开管理面板<br>
+    <strong>12.</strong> <strong>新建 / 重命名 / 删除</strong> 实验，调整实验下题目的顺序<br>
+    <strong>13.</strong> 每条题目支持设置：<strong>显示名 · 终端命令 · 脚本内容 · 文件名</strong><br>
+    <strong>14.</strong> 命令和脚本可并存（有脚本时点击会打开脚本编辑器）<br>
+    <strong>15.</strong> 顶栏 <strong>📤 导出 JSON</strong> 可备份本届题目，<strong>📥 导入 JSON</strong> 可恢复<br>
+    <strong>16.</strong> 改动自动保存到浏览器，刷新不丢；可随时 <strong>🔄 恢复默认</strong>
+</div>
+
+<div class="editor-overlay" id="scriptEditorOverlay">
+<div class="editor-left-panel">
+    <div class="shortcut-header">📋 实验快捷操作</div>
+    <div id="expListContainerEditor"></div>
+    <div class="editor-left-footer">
+        <button class="editor-return-btn" onclick="closeScriptEditor()">← 返回终端</button>
+    </div>
+</div>
+    <div class="editor-main">
+        <div class="editor-top-bar">
+            <button class="editor-top-btn" onclick="closeScriptEditor()">← 返回</button>
+            <input type="text" class="editor-filename" id="editorFilename" value="script.sh">
+            <button class="editor-top-btn primary" onclick="saveEditorScript()">保存</button>
+        </div>
+        <div class="editor-body">
+            <textarea id="editorTextarea" class="editor-textarea" spellcheck="false" placeholder="在此编写 Shell 脚本..."></textarea>
+        </div>
+    </div>
+    <div class="editor-help-toggle" id="editorHelpToggle" onclick="toggleEditorHelp()">?</div>
+    <div class="editor-help-panel" id="editorHelpPanel">
+        <div class="help-title">使用说明</div>
+        <strong>1.</strong> 点击左侧 <strong>需求项</strong>，脚本内容自动填入编辑区<br>
+        <strong>2.</strong> 可自行在编辑区内 <strong>修改</strong> 脚本内容<br>
+        <strong>3.</strong> 点击 <strong>保存</strong> 将脚本写入文件系统<br>
+        <strong>4.</strong> 点击 <strong>返回</strong> 回到终端<br>
+        <strong>5.</strong> 在终端中输入 <strong>bash 文件名</strong> 执行脚本<br>
+        <strong>6.</strong> 赋予执行权限: <strong>chmod +x 文件名</strong>
+    </div>
+</div>
+
+<!-- ─── 自定义题目管理弹窗 ─── -->
+<div class="manage-overlay" id="manageOverlay">
+    <div class="manage-dialog">
+        <div class="manage-title">
+            ⚙ 自定义实验与题目
+            <div class="manage-close" onclick="closeManagePanel()">✕</div>
+        </div>
+        <div class="manage-toolbar">
+            <span class="toolbar-label">数据管理：</span>
+            <button class="manage-btn" onclick="exportExpData()">📤 导出 JSON</button>
+            <label class="manage-btn" style="display:inline-block;position:relative;">
+                📥 导入 JSON
+                <input type="file" id="importFileInput" accept=".json,application/json" style="display:none;" onchange="importExpData(event)">
+            </label>
+            <button class="manage-btn danger" onclick="resetExpData()">🔄 恢复默认</button>
+            <span style="flex:1;"></span>
+            <span class="toolbar-label" id="manageStats"></span>
+        </div>
+        <div class="manage-body">
+            <div class="manage-pane left">
+                <div class="pane-header">
+                    <span>实验列表</span>
+                    <div class="pane-actions">
+                        <button class="mini-btn" onclick="addExperiment()">＋ 新建</button>
+                    </div>
+                </div>
+                <div class="pane-list" id="manageExpList"></div>
+            </div>
+            <div class="manage-pane middle">
+                <div class="pane-header">
+                    <span id="manageItemsTitle">题目列表</span>
+                    <div class="pane-actions">
+                        <button class="mini-btn" onclick="moveItem(-1)">↑</button>
+                        <button class="mini-btn" onclick="moveItem(1)">↓</button>
+                        <button class="mini-btn" onclick="addItem()">＋ 新建</button>
+                    </div>
+                </div>
+                <div class="pane-list" id="manageItemsList"></div>
+            </div>
+            <div class="manage-pane right">
+                <div class="pane-header">
+                    <span id="manageFormTitle">编辑表单</span>
+                    <span class="form-mode-tag" id="manageFormMode"></span>
+                </div>
+                <div class="form-body" id="manageFormBody">
+                    <div class="pane-empty">请在左侧选择实验，再选择具体题目进行编辑</div>
+                </div>
+                <div class="form-footer">
+                    <div class="left-actions">
+                        <button class="manage-btn danger" id="manageFormDelete" style="display:none;" onclick="deleteCurrentForm()">🗑 删除</button>
+                    </div>
+                    <div class="right-actions">
+                        <button class="manage-btn" onclick="closeManagePanel()">取消</button>
+                        <button class="manage-btn primary" onclick="saveCurrentForm()">💾 保存</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="app.js"></script>
+
+</body>
+</html>

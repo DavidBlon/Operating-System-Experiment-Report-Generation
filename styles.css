@@ -1,0 +1,456 @@
+﻿        body {
+            background-color: #31112c;
+            color: #ffffff;
+            font-family: 'Ubuntu Mono', 'Consolas', monospace;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+        #terminal {
+            background-color: #300a24;
+            width: 100%;
+            max-width: 1000px;
+            height: 750px;
+            border-radius: 6px;
+            box-shadow: 0 15px 40px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            border: 1px solid #5e2750;
+        }
+        #title-bar {
+            background-color: #24061c;
+            padding: 12px;
+            display: flex;
+            align-items: center;
+            font-size: 14px;
+            position: relative;
+            user-select: none;
+        }
+        /* ─── 窗口控制按钮已移除 ─── */
+        .title { margin: 0 auto; color: #dfdbd2; font-weight: bold; }
+        #output-area {
+            flex: 1;
+            padding: 15px;
+            overflow-y: auto;
+            font-size: 15px;
+            line-height: 1.4;
+            position: relative;
+        }
+        .input-line { display: flex; align-items: center; margin-top: 5px; }
+        .prompt, .interactive-prompt { color: #8ae234; font-weight: bold; white-space: pre; }
+        .cmd-input {
+            background: transparent;
+            border: none;
+            color: #ffffff;
+            font-family: inherit;
+            font-size: inherit;
+            flex: 1;
+            outline: none;
+            padding-left: 2px;
+        }
+        .cmd-input.password-blind { color: transparent !important; caret-color: #ffffff; }
+        .output-row { margin-bottom: 8px; white-space: pre-wrap; word-break: break-all; }
+        .error { color: #ef2929; }
+        .success { color: #4ae234; }
+        
+        /* ─── 📸 GTK GUI 窗体组件 ─── */
+        .ubuntu-photo-gui {
+            background-color: #e6e5e1; color: #2d2d2d; border: 1px solid #979591;
+            border-radius: 4px; width: 680px; margin-top: 15px;
+            font-family: "Ubuntu", -apple-system, sans-serif;
+            box-shadow: 0 12px 35px rgba(0,0,0,0.6); overflow: hidden; position: relative; user-select: none;
+        }
+        .photo-gui-title { background: #3d3a36; color: #ffffff; padding: 8px 14px; font-size: 13.5px; text-align: center; position: relative; }
+        .photo-gui-close { position: absolute; right: 8px; top: 6px; background-color: #df4b33; color: white; border-radius: 50%; width: 16px; height: 16px; font-size: 11px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .photo-gui-content { padding: 16px; display: flex; gap: 20px; }
+        .photo-left-pane { width: 200px; display: flex; flex-direction: column; }
+        .photo-user-container { background-color: #ffffff; border: 1px solid #bcbab6; border-bottom: none; height: 220px; overflow-y: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.15); }
+        .photo-user-item { display: flex; align-items: center; gap: 12px; padding: 8px 12px; cursor: pointer; border-bottom: 1px solid #f4f3f1; }
+        .photo-user-item.active { background: linear-gradient(to bottom, #abc3da, #9bb8d3); border-bottom: 1px solid #8ba4bd; }
+        .photo-avatar-small { width: 26px; height: 26px; background: linear-gradient(to bottom, #f7f7f7, #d5d3ce); border-radius: 50%; border: 1px solid #b8b6b1; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+        .photo-item-text { display: flex; flex-direction: column; line-height: 1.2; }
+        .photo-item-uname { font-weight: bold; font-size: 14px; color: #111; }
+        .photo-item-rname { font-size: 12px; color: #666; }
+        .photo-twin-btn-group { display: flex; width: 100%; }
+        .photo-twin-btn { flex: 1; background: linear-gradient(to bottom, #ffffff, #eae8e3); border: 1px solid #b8b6b1; padding: 5px 0; font-size: 13px; text-align: center; cursor: pointer; }
+        .photo-twin-btn:first-child { border-radius: 0 0 0 4px; border-right: none; }
+        .photo-twin-btn:last-child { border-radius: 0 0 4px 0; }
+        .photo-single-btn { background: linear-gradient(to bottom, #ffffff, #eae8e3); border: 1px solid #b8b6b1; border-radius: 4px; padding: 5px 0; font-size: 13px; text-align: center; margin-top: 10px; cursor: pointer; }
+        .photo-right-pane { flex: 1; display: flex; flex-direction: column; padding-top: 5px; }
+        .photo-right-header { display: flex; align-items: center; gap: 18px; margin-bottom: 25px; }
+        .photo-avatar-large { width: 52px; height: 52px; background: linear-gradient(to bottom, #ffffff, #dcdadb); border-radius: 50%; border: 1px solid #b3b1ac; display: flex; align-items: center; justify-content: center; font-size: 26px; }
+        .photo-username-large { font-size: 20px; font-weight: bold; color: #000000; }
+        .photo-detail-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; width: 100%; }
+        .photo-label-area { font-size: 14px; color: #2d2d2d; }
+        .photo-label-value { font-weight: bold; color: #000000; margin-left: 15px; }
+        .photo-gtk-btn { background: linear-gradient(to bottom, #ffffff, #eae8e3); border: 1px solid #b8b6b1; border-radius: 3px; padding: 4px 14px; font-size: 13px; color: #2d2d2d; cursor: pointer; }
+        .photo-gui-footer { background-color: #dfdeda; border-top: 1px solid #cbc9c5; padding: 10px 16px; display: flex; justify-content: space-between; }
+
+        /* ─── 📸 级联“组设置”子弹窗样式 ─── */
+        .group-settings-modal {
+            position: absolute; top: 60px; left: 120px; background-color: #e6e5e1; color: #2d2d2d; border: 1px solid #979591; border-radius: 4px; width: 480px; box-shadow: 0 15px 45px rgba(0,0,0,0.7); z-index: 100; font-family: "Ubuntu", sans-serif; overflow: hidden; display: none;
+        }
+        .group-modal-title { background: #3d3a36; color: #ffffff; padding: 7px 12px; font-size: 13px; text-align: center; position: relative; }
+        .group-modal-close { position: absolute; right: 8px; top: 5px; background-color: #df4b33; color: white; border-radius: 50%; width: 15px; height: 15px; font-size: 10px; font-weight: bold; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .group-modal-body { padding: 14px; }
+        .group-list-label { font-size: 13.5px; margin-bottom: 6px; color: #111; }
+        .group-main-layout { display: flex; gap: 15px; margin-bottom: 12px; }
+        .group-list-scrollbox { background-color: #ffffff; border: 1px solid #bcbab6; flex: 1; height: 190px; overflow-y: auto; box-shadow: inset 0 1px 3px rgba(0,0,0,0.15); }
+        .group-list-item { padding: 5px 10px; font-size: 14px; color: #2d2d2d; cursor: pointer; }
+        .group-list-item:hover { background-color: #e0ded9; }
+        .group-list-item.selected-item { background: linear-gradient(to bottom, #abc3da, #9bb8d3); color: #000; font-weight: bold; }
+        .group-right-btns { display: flex; flex-direction: column; gap: 8px; width: 90px; }
+        .group-footer-bar { display: flex; justify-content: space-between; border-top: 1px solid #cbc9c5; padding: 8px 14px; background-color: #dfdeda; }
+
+        /* ─── 设备命名对话框 ─── */
+        .device-name-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
+        }
+        .device-name-dialog {
+            background-color: #e6e5e1; color: #2d2d2d; border: 1px solid #979591;
+            border-radius: 4px; width: 420px; box-shadow: 0 15px 45px rgba(0,0,0,0.7);
+            font-family: "Ubuntu", -apple-system, sans-serif; overflow: hidden;
+        }
+        .device-name-title {
+            background: #3d3a36; color: #ffffff; padding: 10px 14px; font-size: 14px;
+            text-align: center; font-weight: bold;
+        }
+        .device-name-body { padding: 24px 20px 16px; }
+        .device-name-label { font-size: 14px; color: #2d2d2d; margin-bottom: 12px; line-height: 1.5; }
+        .device-name-input {
+            width: 100%; padding: 8px 10px; font-size: 14px; font-family: "Ubuntu", sans-serif;
+            border: 1px solid #b8b6b1; border-radius: 3px; background: #fff;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.1); outline: none; box-sizing: border-box;
+        }
+        .device-name-input:focus { border-color: #4a90d9; }
+        .device-name-footer {
+            background-color: #dfdeda; border-top: 1px solid #cbc9c5;
+            padding: 12px 20px; display: flex; justify-content: flex-end; gap: 10px;
+        }
+        .device-name-btn {
+            background: linear-gradient(to bottom, #ffffff, #eae8e3); border: 1px solid #b8b6b1;
+            border-radius: 3px; padding: 6px 20px; font-size: 13px; color: #2d2d2d;
+            cursor: pointer; font-family: "Ubuntu", sans-serif;
+        }
+        .device-name-btn:hover { background: linear-gradient(to bottom, #f5f5f5, #e0ded9); }
+        .device-name-btn.primary {
+            background: linear-gradient(to bottom, #4a90d9, #357abd); color: #fff;
+            border-color: #2a6aa0; min-width: 80px;
+        }
+        .device-name-btn.primary:hover { background: linear-gradient(to bottom, #5a9ee3, #4088cc); }
+
+        /* ─── 实验快捷操作面板 ─── */
+        .workspace { position: relative; width: 100%; display: flex; justify-content: center; }
+        .shortcut-panel {
+            background-color: #2d1b2c; border: 1px solid #5e2750; border-radius: 6px;
+            width: 230px; max-height: 750px; overflow-y: auto;
+            position: fixed; left: 12px; top: 50%; transform: translateY(-50%);
+            font-family: 'Ubuntu Mono', 'Consolas', monospace; font-size: 13px;
+            z-index: 100;
+        }
+        .shortcut-panel::-webkit-scrollbar { width: 6px; }
+        .shortcut-panel::-webkit-scrollbar-track { background: #2d1b2c; }
+        .shortcut-panel::-webkit-scrollbar-thumb { background: #5e2750; border-radius: 3px; }
+        .shortcut-header {
+            background-color: #24061c; color: #dfdbd2; padding: 10px 12px;
+            font-weight: bold; text-align: center; font-size: 14px; border-bottom: 1px solid #5e2750;
+        }
+        .exp-btn {
+            width: 100%; padding: 9px 12px; background: linear-gradient(to bottom, #4a3048, #3a2438);
+            border: none; border-bottom: 1px solid #5e2750; color: #dfdbd2;
+            font-family: inherit; font-size: 13px; cursor: pointer; text-align: left;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .exp-btn:hover { background: linear-gradient(to bottom, #5a4058, #4a3448); }
+        .exp-btn::after { content: '▶'; font-size: 10px; color: #8ae234; transition: transform 0.2s; }
+        .exp-btn.open::after { transform: rotate(90deg); }
+        .exp-btn-row { display: flex; border-bottom: 1px solid #5e2750; }
+        .exp-btn-row .exp-btn { border-bottom: none; border-right: 1px solid #5e2750; }
+        .exp-btn-main::after { content: none !important; }
+        .exp-toggle-btn { width: 34px; padding: 0; background: linear-gradient(to bottom, #4a3048, #3a2438); border: none; color: #8ae234; cursor: pointer; font-size: 10px; text-align: center; flex-shrink: 0; }
+        .exp-toggle-btn:hover { background: linear-gradient(to bottom, #5a4058, #4a3448); }
+        .exp-btn-row:has(+ .exp-content.open) .exp-toggle-btn { transform: rotate(90deg); }
+        .exp-content { display: none; }
+        .exp-content.open { display: block; }
+        .section-title {
+            color: #8ae234; font-size: 11px; padding: 6px 12px 2px; font-weight: bold;
+            background-color: rgba(0,0,0,0.15); margin-top: 2px;
+        }
+        .req-item {
+            padding: 3px 12px 3px 22px; color: #ccc; cursor: pointer; font-size: 12px;
+            line-height: 1.6; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+        }
+        .req-item:hover { background-color: rgba(255,255,255,0.08); color: #fff; }
+
+        /* ─── 右上角使用说明 ─── */
+        .help-toggle {
+            position: fixed; top: 12px; right: 12px; z-index: 100;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #5e2750; border: 1px solid #8a4a76;
+            color: #dfdbd2; font-size: 16px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-family: 'Ubuntu Mono', 'Consolas', monospace;
+            transition: background 0.2s; user-select: none;
+        }
+        .help-toggle:hover { background: #7a3d68; }
+        .help-panel {
+            position: fixed; top: 48px; right: 12px; z-index: 100;
+            width: 260px; max-height: 500px; overflow-y: auto;
+            background-color: #2d1b2c; border: 1px solid #5e2750; border-radius: 6px;
+            font-family: 'Ubuntu Mono', 'Consolas', monospace; font-size: 12px;
+            color: #ccc; display: none; padding: 10px 12px; line-height: 1.7;
+        }
+        .help-panel.open { display: block; }
+        .help-panel strong { color: #8ae234; }
+        .help-panel .help-title {
+            color: #dfdbd2; font-size: 13px; font-weight: bold;
+            text-align: center; margin-bottom: 8px; border-bottom: 1px solid #5e2750; padding-bottom: 6px;
+        }
+        .help-panel .help-section {
+            display: block; color: #dfdbd2; font-size: 12.5px; font-weight: bold;
+            border-bottom: 1px dashed #5e2750; padding: 4px 0 2px; margin: 6px 0 2px;
+        }
+        .help-panel .help-section:first-of-type { margin-top: 0; }
+        .help-panel::-webkit-scrollbar { width: 6px; }
+        .help-panel::-webkit-scrollbar-track { background: #2d1b2c; }
+        .help-panel::-webkit-scrollbar-thumb { background: #5e2750; border-radius: 3px; }
+
+        /* âââ èæ¬ç¼è¾å¨è¦çå± âââ */
+        .editor-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: #ffffff; z-index: 9999;
+            font-family: 'Ubuntu Mono', 'Consolas', monospace;
+            display: none;
+        }
+        .editor-overlay.open { display: flex; }
+        .editor-left-panel {
+            background-color: #2d1b2c; border-right: 1px solid #5e2750;
+            width: 230px; display: flex; flex-direction: column;
+            overflow-y: auto; flex-shrink: 0;
+        }
+        .editor-left-panel::-webkit-scrollbar { width: 6px; }
+        .editor-left-panel::-webkit-scrollbar-track { background: #2d1b2c; }
+        .editor-left-panel::-webkit-scrollbar-thumb { background: #5e2750; border-radius: 3px; }
+        .editor-left-footer {
+            margin-top: auto; padding: 12px;
+            border-top: 1px solid #5e2750;
+        }
+        .editor-return-btn {
+            width: 100%; padding: 8px 12px;
+            background: linear-gradient(to bottom, #4a3048, #3a2438);
+            border: 1px solid #5e2750; border-radius: 4px;
+            color: #dfdbd2; font-family: inherit; font-size: 13px;
+            cursor: pointer; text-align: center;
+        }
+        .editor-return-btn:hover { background: linear-gradient(to bottom, #5a4058, #4a3448); }
+        .editor-main {
+            flex: 1; display: flex; flex-direction: column;
+            background: #ffffff; min-width: 0;
+        }
+        .editor-top-bar {
+            display: flex; align-items: center; padding: 8px 16px;
+            background: #f5f5f5; border-bottom: 1px solid #ddd;
+            gap: 10px; flex-shrink: 0;
+        }
+        .editor-top-btn {
+            padding: 6px 16px; border: 1px solid #ccc; border-radius: 4px;
+            background: #fff; cursor: pointer; font-size: 13px;
+            font-family: inherit; white-space: nowrap;
+        }
+        .editor-top-btn:hover { background: #f0f0f0; }
+        .editor-top-btn.primary {
+            background: #4a90d9; color: #fff; border-color: #357abd;
+        }
+        .editor-top-btn.primary:hover { background: #357abd; }
+        .editor-filename {
+            flex: 0 1 300px; text-align: center; font-size: 14px; font-weight: bold;
+            border: 1px solid #ddd; border-radius: 3px; padding: 4px 10px;
+            font-family: inherit; background: #fff;
+        }
+        .editor-body {
+            flex: 1; padding: 20px; display: flex;
+            background: #f0f0f0; min-height: 0;
+        }
+        .editor-textarea {
+            width: 100%; height: 100%;
+            background: #1e1e1e; color: #d4d4d4;
+            border: 1px solid #333; border-radius: 4px;
+            padding: 16px; font-family: 'Ubuntu Mono', 'Consolas', monospace;
+            font-size: 14px; line-height: 1.6;
+            resize: none; outline: none; tab-size: 4;
+            white-space: pre; overflow-wrap: normal;
+            overflow-x: auto;
+        }
+        .editor-help-toggle {
+            position: fixed; top: 12px; right: 12px; z-index: 10000;
+            width: 28px; height: 28px; border-radius: 50%;
+            background: #5e2750; border: 1px solid #8a4a76;
+            color: #dfdbd2; font-size: 16px; font-weight: bold;
+            cursor: pointer; display: flex; align-items: center; justify-content: center;
+            font-family: 'Ubuntu Mono', 'Consolas', monospace;
+            transition: background 0.2s; user-select: none;
+        }
+        .editor-help-toggle:hover { background: #7a3d68; }
+        .editor-help-panel {
+            position: fixed; top: 48px; right: 12px; z-index: 10000;
+            width: 260px; max-height: 500px; overflow-y: auto;
+            background-color: #2d1b2c; border: 1px solid #5e2750; border-radius: 6px;
+            font-family: 'Ubuntu Mono', 'Consolas', monospace; font-size: 12px;
+            color: #ccc; display: none; padding: 10px 12px; line-height: 1.7;
+        }
+        .editor-help-panel.open { display: block; }
+        .editor-help-panel strong { color: #8ae234; }
+        .editor-help-panel .help-title {
+            color: #dfdbd2; font-size: 13px; font-weight: bold;
+            text-align: center; margin-bottom: 8px; border-bottom: 1px solid #5e2750; padding-bottom: 6px;
+        }
+        .editor-help-panel::-webkit-scrollbar { width: 6px; }
+        .editor-help-panel::-webkit-scrollbar-track { background: #2d1b2c; }
+        .editor-help-panel::-webkit-scrollbar-thumb { background: #5e2750; border-radius: 3px; }
+
+        /* ─── 快捷面板底部齿轮按钮 ─── */
+        .shortcut-footer {
+            border-top: 1px solid #5e2750;
+            padding: 8px;
+            background-color: #24061c;
+        }
+        .manage-gear-btn {
+            width: 100%;
+            padding: 8px 10px;
+            background: linear-gradient(to bottom, #4a3048, #3a2438);
+            border: 1px solid #5e2750;
+            border-radius: 4px;
+            color: #8ae234;
+            font-family: inherit;
+            font-size: 12.5px;
+            cursor: pointer;
+            text-align: center;
+        }
+        .manage-gear-btn:hover { background: linear-gradient(to bottom, #5a4058, #4a3448); color: #fff; }
+
+        /* ─── 自定义题目管理弹窗 ─── */
+        .manage-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.6); z-index: 9999;
+            display: none; justify-content: center; align-items: center;
+        }
+        .manage-overlay.open { display: flex; }
+        .manage-dialog {
+            background-color: #e6e5e1; color: #2d2d2d;
+            border: 1px solid #979591; border-radius: 4px;
+            width: 920px; max-width: 95vw; height: 640px; max-height: 90vh;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.7);
+            font-family: "Ubuntu", -apple-system, sans-serif;
+            display: flex; flex-direction: column; overflow: hidden;
+        }
+        .manage-title {
+            background: #3d3a36; color: #ffffff;
+            padding: 10px 14px; font-size: 14px; text-align: center;
+            font-weight: bold; position: relative;
+        }
+        .manage-close {
+            position: absolute; right: 10px; top: 8px;
+            background-color: #df4b33; color: white; border-radius: 50%;
+            width: 18px; height: 18px; font-size: 12px; font-weight: bold;
+            display: flex; align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        .manage-toolbar {
+            background-color: #dfdeda; border-bottom: 1px solid #cbc9c5;
+            padding: 8px 12px; display: flex; gap: 8px; align-items: center;
+            flex-wrap: wrap;
+        }
+        .manage-toolbar .toolbar-label {
+            font-size: 13px; color: #555; margin-right: 4px;
+        }
+        .manage-btn {
+            background: linear-gradient(to bottom, #ffffff, #eae8e3);
+            border: 1px solid #b8b6b1; border-radius: 3px;
+            padding: 5px 12px; font-size: 13px; color: #2d2d2d;
+            cursor: pointer; font-family: "Ubuntu", sans-serif;
+        }
+        .manage-btn:hover { background: linear-gradient(to bottom, #f5f5f5, #e0ded9); }
+        .manage-btn.primary {
+            background: linear-gradient(to bottom, #4a90d9, #357abd);
+            color: #fff; border-color: #2a6aa0;
+        }
+        .manage-btn.primary:hover { background: linear-gradient(to bottom, #5a9ee3, #4088cc); }
+        .manage-btn.danger { color: #c0392b; }
+        .manage-btn.danger:hover { background: linear-gradient(to bottom, #fadbd8, #f5b7b1); }
+        .manage-body {
+            flex: 1; display: flex; overflow: hidden; min-height: 0;
+        }
+        .manage-pane {
+            display: flex; flex-direction: column; overflow: hidden; min-height: 0;
+        }
+        .manage-pane.left { width: 240px; border-right: 1px solid #cbc9c5; background-color: #efeee9; }
+        .manage-pane.middle { width: 380px; border-right: 1px solid #cbc9c5; }
+        .manage-pane.right { flex: 1; }
+        .pane-header {
+            background-color: #dfdeda; border-bottom: 1px solid #cbc9c5;
+            padding: 8px 12px; font-size: 13px; font-weight: bold; color: #333;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .pane-header .pane-actions { display: flex; gap: 6px; }
+        .pane-header .mini-btn {
+            background: linear-gradient(to bottom, #ffffff, #eae8e3);
+            border: 1px solid #b8b6b1; border-radius: 3px;
+            padding: 2px 8px; font-size: 12px; color: #2d2d2d; cursor: pointer;
+        }
+        .pane-header .mini-btn:hover { background: linear-gradient(to bottom, #f5f5f5, #e0ded9); }
+        .pane-header .mini-btn.danger { color: #c0392b; }
+        .pane-list {
+            flex: 1; overflow-y: auto; background-color: #ffffff;
+            box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+        }
+        .pane-list::-webkit-scrollbar { width: 6px; }
+        .pane-list::-webkit-scrollbar-thumb { background: #b8b6b1; border-radius: 3px; }
+        .list-item {
+            padding: 8px 12px; border-bottom: 1px solid #f0efeb; cursor: pointer;
+            font-size: 13.5px; color: #2d2d2d; line-height: 1.3;
+        }
+        .list-item:hover { background-color: #e8e7e2; }
+        .list-item.active { background: linear-gradient(to bottom, #abc3da, #9bb8d3); font-weight: bold; }
+        .list-item .item-sub { font-size: 11.5px; color: #777; margin-top: 2px; word-break: break-all; }
+        .list-item.active .item-sub { color: #1a3a5a; }
+        .pane-empty {
+            padding: 20px 12px; color: #999; font-size: 13px; text-align: center;
+        }
+        .form-body { padding: 12px 14px; overflow-y: auto; flex: 1; }
+        .form-body::-webkit-scrollbar { width: 6px; }
+        .form-body::-webkit-scrollbar-thumb { background: #b8b6b1; border-radius: 3px; }
+        .form-group { margin-bottom: 12px; }
+        .form-label {
+            display: block; font-size: 13px; color: #2d2d2d;
+            margin-bottom: 4px; font-weight: bold;
+        }
+        .form-input, .form-textarea {
+            width: 100%; padding: 6px 8px; font-size: 13px;
+            font-family: "Ubuntu", "Consolas", monospace;
+            border: 1px solid #b8b6b1; border-radius: 3px;
+            background: #fff; box-shadow: inset 0 1px 3px rgba(0,0,0,0.08);
+            outline: none; box-sizing: border-box; color: #2d2d2d;
+        }
+        .form-input:focus, .form-textarea:focus { border-color: #4a90d9; }
+        .form-textarea { min-height: 120px; resize: vertical; }
+        .form-textarea.tall { min-height: 200px; }
+        .form-hint { font-size: 11.5px; color: #888; margin-top: 3px; }
+        .form-check { display: flex; align-items: center; gap: 6px; font-size: 13px; color: #2d2d2d; }
+        .form-footer {
+            background-color: #dfdeda; border-top: 1px solid #cbc9c5;
+            padding: 10px 14px; display: flex; justify-content: space-between;
+            align-items: center; gap: 8px;
+        }
+        .form-footer .left-actions { display: flex; gap: 8px; }
+        .form-footer .right-actions { display: flex; gap: 8px; }
+        .form-mode-tag {
+            font-size: 12px; color: #555; font-weight: bold;
+        }
+
