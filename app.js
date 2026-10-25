@@ -11,6 +11,7 @@ function applyDeviceName(name, suffix) {
     // 同名快照存在时直接恢复上次的虚拟机状态（文件、用户、组）
     if (tryRestoreVm(name)) {
         state.currentUser = name;
+        userLoggedIn = true;
         updatePrompt();
         deviceOverlay.style.display = 'none';
         cmdInputRef.disabled = false;
@@ -43,6 +44,7 @@ function applyDeviceName(name, suffix) {
     cmdInputRef.disabled = false;
     cmdInputRef.focus();
     saveVmSnapshot();
+    userLoggedIn = true;
     syncExperimentsFromServer();
 }
 deviceInput.focus();
@@ -2668,6 +2670,25 @@ const DEFAULT_EXPERIMENTS = [ {
     id: 3, title: '实验三 Shell脚本编程', isScript: true, itemIdxs: [39,40,41,42,43,44,45,46,47,48,49]
 },
 ];
+// ─── 题目数据模型：内联 items 是规范形式（兼容旧的 itemIdxs 全局下标引用）───
+// 读取一个实验的题目列表：优先内联 items，否则按 itemIdxs 解引用全局 expData
+function getExpItems(exp) {
+    if (Array.isArray(exp.items)) return exp.items;
+    return (exp.itemIdxs || []).map(i => expData[i]).filter(Boolean);
+}
+// 把实验规范化为内联形式（深拷贝，题目内容自包含，可直接序列化入库）
+function materializeExp(exp) {
+    return {
+        id: exp.id, title: exp.title, isScript: !!exp.isScript,
+        items: getExpItems(exp).map(it => {
+            const o = { label: it.label || '(未命名)' };
+            if (it.cmd) o.cmd = it.cmd;
+            if (it.script) { o.script = it.script; o.filename = it.filename || 'script.sh'; }
+            return o;
+        })
+    };
+}
+const DEFAULT_EXPERIMENTS_INLINE = DEFAULT_EXPERIMENTS.map(materializeExp);
 const EXP_STORAGE_KEY = 'ubuntu_terminal_experiments_v1';
 let experiments = [];
 function loadExperiments() {
@@ -2676,7 +2697,7 @@ function loadExperiments() {
         if (raw) {
             const parsed = JSON.parse(raw);
             if (Array.isArray(parsed) && parsed.length > 0) {
-                experiments = parsed;
+                experiments = parsed.map(materializeExp);
                 return;
             }
         }
@@ -2684,8 +2705,8 @@ function loadExperiments() {
     catch (e) {
         console.warn('加载自定义实验数据失败', e);
     }
-    experiments = JSON.parse(JSON.stringify(DEFAULT_EXPERIMENTS));
-    saveExperiments();
+    // 未写 localStorage：先展示内置默认，服务器默认题库到达后自动替换
+    experiments = JSON.parse(JSON.stringify(DEFAULT_EXPERIMENTS_INLINE));
 }
 function saveExperiments() {
     try {
@@ -2700,7 +2721,45 @@ function saveExperiments() {
 const EXP_API = 'api/experiments.php';
 let expPushTimer = null;
 let applyingServerData = false;
-// 登录后拉取该用户的题目；服务器无记录时把本地数据作为初始版本上传
+let userLoggedIn = false;
+// 从服务器加载全局默认题库（数据库驱动；离线或无 PHP 时回退内置版本）
+function loadDefaultExperimentsFromServer() {
+    fetch(EXP_API + '?user=%23default%23')
+        .then(r => r.json())
+        .then(j => {
+            if (!j || j.ok !== true || !Array.isArray(j.data) || j.data.length === 0) return;
+            const dbDefaults = j.data.map(materializeExp);
+            DEFAULT_EXPERIMENTS_INLINE.length = 0;
+            DEFAULT_EXPERIMENTS_INLINE.push.apply(DEFAULT_EXPERIMENTS_INLINE, dbDefaults);
+            // 未登录且本地没有自己的修改 → 直接展示数据库默认题库
+            let hasLocalData = false;
+            try { hasLocalData = !!localStorage.getItem(EXP_STORAGE_KEY); } catch (e) { }
+            if (!userLoggedIn && !hasLocalData) {
+                experiments = JSON.parse(JSON.stringify(DEFAULT_EXPERIMENTS_INLINE));
+                renderShortcutPanel();
+                renderEditorShortcutPanel();
+            }
+        })
+        .catch(e => console.warn('默认题库加载失败（使用内置版本）', e));
+}
+// 把当前题库发布为全局默认（需要管理密码，写入数据库 #default# 保留行）
+function publishDefaultExperiments() {
+    const key = window.prompt('发布后将成为所有人打开页面看到的默认题库。\n请输入管理密码：');
+    if (key === null || key === '') return;
+    fetch(EXP_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user: '#default#', admin_key: key, data: experiments })
+    })
+        .then(r => r.json())
+        .then(j => {
+            if (j && j.ok === true) alert('已发布为默认题库！\n之后所有人打开页面都会看到这份题库。');
+            else alert('发布失败：' + ((j && j.error) || '管理密码错误'));
+        })
+        .catch(() => alert('发布失败：网络错误'));
+}
+window.publishDefaultExperiments = publishDefaultExperiments;
+// 登录后拉取该用户的题目；服务器无记录时，本地未定制则采用数据库默认题库
 function syncExperimentsFromServer() {
     if (!state.currentUser) return;
     fetch(EXP_API + '?user=' + encodeURIComponent(state.currentUser))
@@ -2709,7 +2768,7 @@ function syncExperimentsFromServer() {
             if (!j || j.ok !== true) return;
             if (Array.isArray(j.data) && j.data.length > 0) {
                 applyingServerData = true;
-                experiments = j.data;
+                experiments = j.data.map(materializeExp);
                 saveExperiments();          // 更新本地缓存（此轮不再回传服务器）
                 applyingServerData = false;
                 renderShortcutPanel();
@@ -2720,7 +2779,19 @@ function syncExperimentsFromServer() {
                 }
             }
             else {
-                pushExperimentsToServer();  // 服务器为空：上传本地初始版本
+                // 服务器没有该用户记录：本地与内置默认一致 → 采用数据库默认；
+                // 本地有改动 → 保留并上传，不丢用户已有的自定义
+                fetch(EXP_API + '?user=%23default%23').then(r2 => r2.json()).then(d2 => {
+                    if (!d2 || d2.ok !== true || !Array.isArray(d2.data) || d2.data.length === 0) return;
+                    if (JSON.stringify(experiments) === JSON.stringify(DEFAULT_EXPERIMENTS_INLINE)) {
+                        experiments = d2.data.map(materializeExp);
+                        renderShortcutPanel();
+                        renderEditorShortcutPanel();
+                    }
+                    else {
+                        pushExperimentsToServer();
+                    }
+                }).catch(() => { });
             }
         })
         .catch(e => console.warn('题目服务器同步失败（离线？）', e));
@@ -2740,8 +2811,10 @@ function pushExperimentsToServer() {
 function getExpById(eid) {
     return experiments.find(e => e.id === eid);
 }
-function runReq(idx) {
-    const item = expData[idx];
+function runReq(eid, pos) {
+    const exp = getExpById(eid);
+    const item = exp ? getExpItems(exp)[pos] : null;
+    if (!item) return;
     const input = document.getElementById('cmd');
     if (!input) return;
     if (item.cmd) {
@@ -2770,11 +2843,9 @@ function toggleExp(n) {
     }
     btn.classList.add('open');
     let html = '';
-    for (const idx of (exp.itemIdxs || [])) {
-        const d = expData[idx];
-        if (!d) continue;
-        html += '<div class="req-item" onclick="runReq(' + idx + ')">' + escapeHtml(d.label) + '</div>';
-    }
+    getExpItems(exp).forEach(function (d, pos) {
+        html += '<div class="req-item" onclick="runReq(' + exp.id + ',' + pos + ')">' + escapeHtml(d.label || '(未命名)') + '</div>';
+    });
     content.innerHTML = html;
     content.classList.add('open');
 }
@@ -2812,11 +2883,9 @@ function toggleExpInEditor(n) {
     }
     btn.classList.add('open');
     let html = '';
-    for (const idx of (exp.itemIdxs || [])) {
-        const d = expData[idx];
-        if (!d) continue;
-        html += '<div class="req-item" onclick="handleEditorReqClick(' + idx + ')">' + escapeHtml(d.label) + '</div>';
-    }
+    getExpItems(exp).forEach(function (d, pos) {
+        html += '<div class="req-item" onclick="handleEditorReqClick(' + exp.id + ',' + pos + ')">' + escapeHtml(d.label || '(未命名)') + '</div>';
+    });
     content.innerHTML = html;
     content.classList.add('open');
 }
@@ -2881,8 +2950,9 @@ function sanitizeName(n) {
 function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
-function handleEditorReqClick(idx) {
-    const item = expData[idx];
+function handleEditorReqClick(eid, pos) {
+    const exp = getExpById(eid);
+    const item = exp ? getExpItems(exp)[pos] : null;
     if (!item) return;
     if (item.script) {
         document.getElementById('editorTextarea').value = item.script;
@@ -3563,31 +3633,31 @@ function renderManageItemsList() {
         return;
     }
     if (title) title.textContent = '题目 · ' + exp.title;
-    if (!exp.itemIdxs || exp.itemIdxs.length === 0) {
+    const items = getExpItems(exp);
+    if (items.length === 0) {
         list.innerHTML = '<div class="pane-empty">还没有题目<br>点击"＋ 新建"</div>';
         return;
     }
     let html = '';
-    exp.itemIdxs.forEach((idx, i) => {
-        const item = expData[idx];
-        if (!item) return;
-        const active = (idx === manage.selectedItemIdx) ? ' active' : '';
+    items.forEach(function (item, pos) {
+        const active = (pos === manage.selectedItemIdx) ? ' active' : '';
         let sub = '';
         if (item.cmd) sub = '$ ' + item.cmd;
         else if (item.script) sub = '脚本: ' + (item.filename || 'script.sh');
         else sub = '(无命令/脚本)';
-        html += '<div class="list-item' + active + '" onclick="selectItem(' + idx + ')">';
-        html += (i + 1) + '. ' + escapeHtml(item.label || '(未命名)');
+        html += '<div class="list-item' + active + '" onclick="selectItem(' + pos + ')">';
+        html += (pos + 1) + '. ' + escapeHtml(item.label || '(未命名)');
         html += '<div class="item-sub">' + escapeHtml(sub) + '</div>';
         html += '</div>';
     }
     );
     list.innerHTML = html;
 }
-function selectItem(idx) {
-    const item = expData[idx];
+function selectItem(pos) {
+    const exp = getExpById(manage.selectedExpId);
+    const item = exp ? getExpItems(exp)[pos] : null;
     if (!item) return;
-    manage.selectedItemIdx = idx;
+    manage.selectedItemIdx = pos;
     manage.editingMode = 'item';
     manage.draft = JSON.parse(JSON.stringify(item));
     renderManageItemsList();
@@ -3638,8 +3708,7 @@ function saveCurrentForm() {
     else if (manage.editingMode === 'item') {
         const exp = getExpById(manage.selectedExpId);
         if (!exp) return;
-        const idx = manage.selectedItemIdx;
-        const item = expData[idx];
+        const item = getExpItems(exp)[manage.selectedItemIdx];
         if (!item) return;
         const labelEl = document.getElementById('f_item_label');
         const cmdEl = document.getElementById('f_item_cmd');
@@ -3662,7 +3731,7 @@ function saveCurrentForm() {
 }
 function deleteCurrentForm() {
     if (manage.editingMode === 'exp') {
-        if (!confirm('确定要删除该实验？\n题目本身会保留在数据池中，可被其它实验引用。')) return;
+        if (!confirm('确定要删除该实验？\n其中的题目会一并删除。')) return;
         experiments = experiments.filter(e => e.id !== manage.selectedExpId);
         manage.selectedExpId = experiments.length > 0 ? experiments[0].id : null;
         manage.editingMode = manage.selectedExpId !== null ? 'exp' : null;
@@ -3678,11 +3747,12 @@ function deleteCurrentForm() {
     else if (manage.editingMode === 'item') {
         const exp = getExpById(manage.selectedExpId);
         if (!exp) return;
-        if (!confirm('确定要从该实验中移除这道题？\n（题目本身仍在数据池中，可被其它实验引用）')) return;
-        exp.itemIdxs = exp.itemIdxs.filter(i => i !== manage.selectedItemIdx);
-        manage.selectedItemIdx = exp.itemIdxs.length > 0 ? exp.itemIdxs[0] : null;
-        manage.editingMode = exp.itemIdxs.length > 0 ? 'item' : null;
-        manage.draft = manage.selectedItemIdx !== null ? JSON.parse(JSON.stringify(expData[manage.selectedItemIdx])) : null;
+        if (!confirm('确定要删除这道题？')) return;
+        if (!Array.isArray(exp.items)) exp.items = getExpItems(exp).slice();
+        exp.items.splice(manage.selectedItemIdx, 1);
+        manage.selectedItemIdx = exp.items.length > 0 ? 0 : null;
+        manage.editingMode = exp.items.length > 0 ? 'item' : null;
+        manage.draft = manage.selectedItemIdx !== null ? JSON.parse(JSON.stringify(exp.items[0])) : null;
         saveExperiments();
         renderManageItemsList();
         renderManageForm();
@@ -3709,16 +3779,12 @@ function addItem() {
         alert('请先在左侧选择一个实验');
         return;
     }
-    const newIdx = expData.length;
-    expData.push({
-        label: '新题目 ' + (newIdx + 1), cmd: '', script: ''
-    }
-    );
-    exp.itemIdxs.push(newIdx);
+    if (!Array.isArray(exp.items)) exp.items = getExpItems(exp).slice();
+    exp.items.push({ label: '新题目 ' + (exp.items.length + 1), cmd: '', script: '' });
     saveExperiments();
-    manage.selectedItemIdx = newIdx;
+    manage.selectedItemIdx = exp.items.length - 1;
     manage.editingMode = 'item';
-    manage.draft = JSON.parse(JSON.stringify(expData[newIdx]));
+    manage.draft = JSON.parse(JSON.stringify(exp.items[exp.items.length - 1]));
     renderManageItemsList();
     renderManageForm();
     renderShortcutPanel();
@@ -3728,13 +3794,14 @@ function addItem() {
 function moveItem(dir) {
     const exp = getExpById(manage.selectedExpId);
     if (!exp || manage.selectedItemIdx === null) return;
-    const i = exp.itemIdxs.indexOf(manage.selectedItemIdx);
-    if (i < 0) return;
+    if (!Array.isArray(exp.items)) exp.items = getExpItems(exp).slice();
+    const i = manage.selectedItemIdx;
     const j = i + dir;
-    if (j < 0 || j >= exp.itemIdxs.length) return;
-    const tmp = exp.itemIdxs[i];
-    exp.itemIdxs[i] = exp.itemIdxs[j];
-    exp.itemIdxs[j] = tmp;
+    if (i < 0 || j < 0 || j >= exp.items.length) return;
+    const tmp = exp.items[i];
+    exp.items[i] = exp.items[j];
+    exp.items[j] = tmp;
+    manage.selectedItemIdx = j;
     saveExperiments();
     renderManageItemsList();
     renderShortcutPanel();
@@ -3857,4 +3924,5 @@ window.resetVm = function () {
 // ─── 初始化：加载持久化数据 + 渲染两个面板 ───
 loadExperiments();
 renderShortcutPanel();
+loadDefaultExperimentsFromServer();
 renderEditorShortcutPanel();

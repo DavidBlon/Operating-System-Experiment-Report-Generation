@@ -84,6 +84,11 @@
     runSimpleCommand('rm -f /tmp/__t.txt');
     eq('清理测试文件', getNode('/tmp/__t.txt'), null);
 
+    // ─── 题目数据模型（内联 items）───
+    eq('materializeExp 展开默认实验一为 23 题', materializeExp(DEFAULT_EXPERIMENTS[0]).items.length, 23);
+    assert('materializeExp 输出自包含（无 itemIdxs 字段）', !('itemIdxs' in materializeExp(DEFAULT_EXPERIMENTS[0])));
+    eq('getExpItems 兼容内联形式', getExpItems({ items: [{ label: 'a' }] }).length, 1);
+
     // ─── 通配符 ───
     eq('globMatch 前缀匹配', globMatch('Doc*').join(','), 'Documents');
     eq('globMatch 子目录匹配', globMatch('Documents/*.md').join(','), 'Documents/notes.md');

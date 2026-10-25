@@ -25,11 +25,20 @@ if ($method === 'GET') {
     if (!is_array($body)) resp(['ok' => false, 'error' => 'invalid body']);
     $user = (string)($body['user'] ?? '');
     $data = isset($body['data']) ? $body['data'] : null;
+    $adminKey = (string)($body['admin_key'] ?? '');
 }
 
 // 用户名白名单校验（与前端 sanitizeName 一致：字母数字下划线连字符中文）
-if (!preg_match('/^[\w\x{4e00}-\x{9fa5}-]{1,32}$/u', $user)) {
+// '#default#' 是保留键：全局默认题库（GET 公开，POST 需要管理密码）
+if ($user !== '#default#' && !preg_match('/^[\w\x{4e00}-\x{9fa5}-]{1,32}$/u', $user)) {
     resp(['ok' => false, 'error' => 'invalid user']);
+}
+
+// 写入默认题库需要管理密码（hash_equals 防时序比较）
+if ($method !== 'GET' && $user === '#default#') {
+    if (!defined('ADMIN_KEY') || ADMIN_KEY === '' || !hash_equals(ADMIN_KEY, $adminKey)) {
+        resp(['ok' => false, 'error' => 'admin key required']);
+    }
 }
 
 if ($method === 'GET') {
