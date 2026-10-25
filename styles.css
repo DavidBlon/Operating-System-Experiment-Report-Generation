@@ -454,3 +454,24 @@
             font-size: 12px; color: #555; font-weight: bold;
         }
 
+        /* ─── 响应式：窄屏适配 ─── */
+        @media (max-width: 900px) {
+            body { padding: 8px; }
+            .workspace { flex-direction: column; align-items: stretch; }
+            .shortcut-panel {
+                position: static;
+                width: 100%;
+                max-height: 190px;
+                transform: none;
+                margin: 0 0 10px 0;
+                order: -1;
+            }
+            #terminal { height: 75vh; max-width: 100%; }
+        }
+        @media (max-width: 720px) {
+            .manage-body { flex-direction: column; overflow-y: auto; }
+            .manage-pane { width: 100% !important; max-height: 220px; border-right: none !important; border-bottom: 1px solid #cbc9c5; }
+            .manage-dialog { width: 96vw; max-height: 92vh; }
+            #output-area { font-size: 13px; }
+        }
+

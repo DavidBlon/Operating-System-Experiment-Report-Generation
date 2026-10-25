@@ -3,8 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ubuntu Terminal - Ultimate Precision Edition</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>username@username-VirtualBox: ~</title>
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23300a24'/%3E%3Ctext x='5' y='22' font-family='monospace' font-size='13' fill='%238ae234'%3E%3E_%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="styles.css?v=3">
 </head>
 <body>
 
@@ -14,6 +16,7 @@
         <div class="device-name-body">
             <div class="device-name-label">欢迎使用 Ubuntu Terminal！<br>请先输入您的用户名：</div>
             <input type="text" class="device-name-input" id="deviceNameInput" placeholder="请输入用户名" autofocus>
+            <div style="margin-top:8px;font-size:12px;color:#8a8a8a;">提示：该用户名将同时作为默认 sudo 密码</div>
 
             <div style="margin-top:18px;border-top:1px solid #bcbab6;padding-top:14px;">
                 <div style="font-size:14px;color:#2d2d2d;margin-bottom:10px;">虚拟主机后缀：</div>
@@ -51,7 +54,7 @@
         <div id="history"></div>
         <div class="input-line" id="input-container">
             <span class="prompt" id="current-prompt">username@username-VirtualBox:~$ </span>
-            <input type="text" id="cmd" class="cmd-input" autofocus autocomplete="off" spellcheck="false">
+            <input type="text" id="cmd" class="cmd-input" autofocus autocomplete="off" spellcheck="false" disabled>
         </div>
         
         <div class="group-settings-modal" id="groupModal">
@@ -97,7 +100,11 @@
     <strong>13.</strong> 每条题目支持设置：<strong>显示名 · 终端命令 · 脚本内容 · 文件名</strong><br>
     <strong>14.</strong> 命令和脚本可并存（有脚本时点击会打开脚本编辑器）<br>
     <strong>15.</strong> 顶栏 <strong>📤 导出 JSON</strong> 可备份本届题目，<strong>📥 导入 JSON</strong> 可恢复<br>
-    <strong>16.</strong> 改动自动保存到浏览器，刷新不丢；可随时 <strong>🔄 恢复默认</strong>
+    <strong>16.</strong> 改动自动保存到浏览器，刷新不丢；可随时 <strong>🔄 恢复默认</strong><br>
+    <span class="help-section">虚拟机快照</span>
+    <strong>17.</strong> 终端里的文件、用户、组改动会自动保存，刷新后继续上次的环境<br>
+    <strong>18.</strong> 需要全新环境时点击 <button class="manage-btn" style="padding:2px 10px;cursor:pointer;" onclick="resetVm()">🔄 重置虚拟机</button><br>
+    <strong>19.</strong> 支持 <strong>|</strong> 管道、<strong>&gt;</strong> / <strong>&gt;&gt;</strong> 重定向、<strong>&amp;&amp;</strong> 与 <strong>;</strong> 命令链，以及 grep/head/tail/wc/sort 等命令
 </div>
 
 <div class="editor-overlay" id="scriptEditorOverlay">
@@ -191,7 +198,7 @@
     </div>
 </div>
 
-<script src="app.js"></script>
+<script src="app.js?v=3"></script>
 
 </body>
 </html>

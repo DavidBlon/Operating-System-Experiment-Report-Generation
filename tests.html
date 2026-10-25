@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>单元测试 - 操作系统实验终端</title>
+    <style>
+        body { font-family: Consolas, monospace; background: #1e1e1e; color: #d4d4d4; padding: 24px; }
+        h1 { font-size: 18px; }
+        .row { padding: 3px 8px; border-radius: 3px; margin: 2px 0; }
+        .pass { color: #4ae234; }
+        .fail { color: #ef2929; background: #3a1520; }
+        .summary { margin-top: 12px; font-size: 16px; font-weight: bold; }
+        pre { background: #2d2d2d; padding: 8px; border-radius: 4px; }
+    </style>
+</head>
+<body>
+    <!-- DOM 桩：app.js 加载时需要的元素 -->
+    <div id="deviceNameOverlay"></div>
+    <input id="deviceNameInput">
+    <button id="deviceNameConfirm"></button>
+    <div id="title-bar"><div class="title"></div></div>
+    <div id="output-area"><div id="history"></div></div>
+    <span id="current-prompt"></span>
+    <input id="cmd">
+    <div id="expListContainer"></div>
+    <div id="expListContainerEditor"></div>
+    <div id="groupModal"></div>
+    <div id="groupListBox"></div>
+    <div id="scriptEditorOverlay"></div>
+    <div id="editorFilename"></div>
+    <textarea id="editorTextarea"></textarea>
+    <div id="editorHelpPanel"></div>
+    <div id="helpPanel"></div>
+    <div id="helpToggle"></div>
+    <div id="manageOverlay"></div>
+    <input id="importFileInput" type="file">
+
+    <h1>操作系统实验终端 - 单元测试</h1>
+    <div id="results"></div>
+    <div class="summary" id="summary"></div>
+
+    <script src="app.js?v=2"></script>
+    <script src="tests.js"></script>
+</body>
+</html>

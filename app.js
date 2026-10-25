@@ -6,6 +6,17 @@ const deviceConfirm = document.getElementById('deviceNameConfirm');
 const cmdInputRef = document.getElementById('cmd');
 cmdInputRef.disabled = true;
 function applyDeviceName(name, suffix) {
+    name = sanitizeName(name);
+    if (!name) return;
+    // 同名快照存在时直接恢复上次的虚拟机状态（文件、用户、组）
+    if (tryRestoreVm(name)) {
+        state.currentUser = name;
+        updatePrompt();
+        deviceOverlay.style.display = 'none';
+        cmdInputRef.disabled = false;
+        cmdInputRef.focus();
+        return;
+    }
     deviceName = name + suffix;
     state.currentUser = name;
     if (!state.users[name]) {
@@ -30,6 +41,7 @@ function applyDeviceName(name, suffix) {
     deviceOverlay.style.display = 'none';
     cmdInputRef.disabled = false;
     cmdInputRef.focus();
+    saveVmSnapshot();
 }
 deviceInput.focus();
 const state = {
@@ -113,9 +125,20 @@ function link(n, t) {
     nd.linkTarget = t;
     return nd;
 }
-const fsTree = dir('/', '755', 'root', 'root', [ dir('bin', '755', 'root', 'root', [ file('bash', '755', 'root', 'root', 1113792, ''), file('cat', '755', 'root', 'root', 35808, ''), file('chmod', '755', 'root', 'root', 56432, ''), file('cp', '755', 'root', 'root', 137680, ''), file('find', '755', 'root', 'root', 224960, ''), file('ls', '755', 'root', 'root', 137680, ''), file('mkdir', '755', 'root', 'root', 83472, ''), file('mount', '755', 'root', 'root', 44464, ''), file('rm', '755', 'root', 'root', 65536, ''), file('rmdir', '755', 'root', 'root', 31744, ''), file('tar', '755', 'root', 'root', 450560, ''), file('touch', '755', 'root', 'root', 35808, '') ]), dir('boot', '755', 'root', 'root', [ file('vmlinuz-6.8.0-generic', '644', 'root', 'root', 11690016, ''), file('initrd.img-6.8.0-generic', '644', 'root', 'root', 65431552, ''), file('config-6.8.0-generic', '644', 'root', 'root', 259476, ''), file('System.map-6.8.0-generic', '644', 'root', 'root', 5672841, '') ]), dir('dev', '755', 'root', 'root', [ file('sda', '660', 'root', 'disk', 0, ''), file('sda1', '660', 'root', 'disk', 0, ''), file('sda2', '660', 'root', 'disk', 0, ''), file('sda3', '660', 'root', 'disk', 0, ''), file('sdb', '660', 'root', 'disk', 0, ''), file('null', '666', 'root', 'root', 0, ''), file('zero', '666', 'root', 'root', 0, ''), file('random', '666', 'root', 'root', 0, ''), file('urandom', '666', 'root', 'root', 0, '') ]), dir('etc', '755', 'root', 'root', [ file('hostname', '644', 'root', 'root', 26, 'username-VirtualBox\n'), file('hosts', '644', 'root', 'root', 268, '127.0.0.1\tlocalhost\n127.0.1.1\tusername-VirtualBox\n\n::1\tlocalhost ip6-localhost ip6-loopback\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n'), file('passwd', '644', 'root', 'root', 1847, ''), file('shadow', '640', 'root', 'shadow', 1234, ''), file('fstab', '644', 'root', 'root', 589, '# /etc/fstab: static file system information.\n# <file system> <mount point> <type> <options> <dump> <pass>\n/dev/sda1 / ext4 errors=remount-ro 0 1\n/dev/sda2 /home ext4 defaults 0 2\n/dev/sda3 none swap sw 0 0\n'), file('group', '644', 'root', 'root', 687, ''), file('gshadow', '640', 'root', 'shadow', 543, ''), file('resolv.conf', '644', 'root', 'root', 128, 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n'), dir('apt', '755', 'root', 'root', [ dir('sources.list.d', '755', 'root', 'root', []), file('sources.list', '644', 'root', 'root', 2871, 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted\ndeb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted\n') ]), dir('default', '755', 'root', 'root', [ file('grub', '644', 'root', 'root', 1267, 'GRUB_DEFAULT=0\nGRUB_TIMEOUT=5\nGRUB_DISTRIBUTOR="Ubuntu"\n') ]), dir('nginx', '755', 'root', 'root', [ file('nginx.conf', '644', 'root', 'root', 2465, 'user www-data;\nworker_processes auto;\npid /run/nginx.pid;\ninclude /etc/nginx/modules-enabled/*.conf;\n\nevents { \n worker_connections 768;\n } \n\nhttp { \n sendfile on;\n include /etc/nginx/mime.types;\n default_type application/octet-stream;\n access_log /var/log/nginx/access.log;\n error_log /var/log/nginx/error.log;\n include /etc/nginx/sites-enabled/*;\n } \n'), dir('sites-available', '755', 'root', 'root', [ file('default', '644', 'root', 'root', 2413, 'server { \n listen 80 default_server;\n root /var/www/html;\n index index.html;\n server_name _;\n } \n') ]), dir('sites-enabled', '755', 'root', 'root', []) ]), dir('ssh', '755', 'root', 'root', [ file('sshd_config', '644', 'root', 'root', 3256, 'Port 22\nPermitRootLogin prohibit-password\nPubkeyAuthentication yes\n') ]), dir('systemd', '755', 'root', 'root', [ dir('system', '755', 'root', 'root', []) ]) ]), dir('home', '755', 'root', 'root', [ dir('username', '755', 'username', 'username', [ file('.bashrc', '644', 'username', 'username', 3771, '# ~/.bashrc: executed by bash(1) for non-login shells.\nexport PS1=\'\\u@\\h:\\w\\$ \'\n'), file('.profile', '644', 'username', 'username', 807, '# ~/.profile: executed by the command interpreter for login shells.\nif [ -n "$BASH_VERSION" ]; then\n if [ -f "$HOME/.bashrc" ]; then\n . "$HOME/.bashrc"\n fi\nfi\n'), file('.bash_history', '600', 'username', 'username', 4812, ''), file('.bash_logout', '644', 'username', 'username', 220, ''), dir('Desktop', '755', 'username', 'username', []), dir('Documents', '755', 'username', 'username', [ file('readme.txt', '644', 'username', 'username', 256, 'Hello World!\nThis is a sample document.\n'), file('notes.md', '644', 'username', 'username', 1024, '# Notes\n\n## Todo\n- Install packages\n- Configure nginx\n- Deploy app\n') ]), dir('Downloads', '755', 'username', 'username', [ file('archive.tar.gz', '644', 'username', 'username', 52428, ''), file('setup.sh', '755', 'username', 'username', 1847, '#!/bin/bash\necho "Setting up environment..."\napt update && apt upgrade -y\n') ]), dir('Music', '755', 'username', 'username', []), dir('Pictures', '755', 'username', 'username', [ file('screenshot.png', '644', 'username', 'username', 245760, '') ]), dir('Videos', '755', 'username', 'username', []), dir('projects', '755', 'username', 'username', [ file('app.py', '644', 'username', 'username', 1536, '#!/usr/bin/env python3\n\nimport os\nimport sys\n\ndef main():\n print("Hello from app.py")\n\nif __name__ == "__main__":\n main()\n'), file('config.json', '644', 'username', 'username', 512, '{ \n "name": "my-project",\n "version": "1.0.0",\n "debug": false\n } \n'), file('Makefile', '644', 'username', 'username', 384, 'CC=gcc\nCFLAGS=-Wall -g\n\nall: main\n\nmain: main.c\n\t$(CC) $(CFLAGS) -o main main.c\n\nclean:\n\trm -f main\n'), dir('src', '755', 'username', 'username', [ file('main.c', '644', 'username', 'username', 512, '#include <stdio.h>\n\nint main() { \n printf("Hello World!\\n");\n return 0;\n } \n'), file('utils.c', '644', 'username', 'username', 1024, '#include "utils.h"\n\nint add(int a, int b) { \n return a + b;\n } \n'), file('utils.h', '644', 'username', 'username', 128, '#ifndef UTILS_H\n#define UTILS_H\nint add(int a, int b);\n#endif\n') ]), dir('docs', '755', 'username', 'username', [ file('api.md', '644', 'username', 'username', 2048, '# API Documentation\n\n## GET /api/v1/status\nReturns server status.\n'), file('changelog.md', '644', 'username', 'username', 768, '# Changelog\n\n## v1.0.0\n- Initial release\n') ]) ]) ]), dir('user1', '755', 'user1', 'user1', [ file('.bashrc', '644', 'user1', 'user1', 3771, ''), file('.profile', '644', 'user1', 'user1', 807, '') ]), dir('user2', '755', 'user2', 'user2', [ file('.bashrc', '644', 'user2', 'user2', 3771, ''), file('.profile', '644', 'user2', 'user2', 807, '') ]) ]), dir('lib', '755', 'root', 'root', [ dir('x86_64-linux-gnu', '755', 'root', 'root', [ file('libc.so.6', '755', 'root', 'root', 2216304, ''), file('libpthread.so.0', '755', 'root', 'root', 146768, ''), file('libm.so.6', '755', 'root', 'root', 1339568, '') ]) ]), dir('mnt', '755', 'root', 'root', []), dir('media', '755', 'root', 'root', [ dir('username', '750', 'username', 'username', []) ]), dir('opt', '755', 'root', 'root', []), dir('proc', '555', 'root', 'root', []), dir('root', '700', 'root', 'root', []), dir('run', '755', 'root', 'root', []), dir('sbin', '755', 'root', 'root', [ file('fdisk', '755', 'root', 'root', 188416, ''), file('mkfs', '755', 'root', 'root', 31744, ''), file('mkfs.ext4', '755', 'root', 'root', 31744, ''), file('mkfs.xfs', '755', 'root', 'root', 31744, ''), file('mkfs.vfat', '755', 'root', 'root', 31744, '') ]), dir('srv', '755', 'root', 'root', []), dir('sys', '555', 'root', 'root', []), dir('tmp', '1777', 'root', 'root', []), dir('usr', '755', 'root', 'root', [ dir('bin', '755', 'root', 'root', [ file('vim', '755', 'root', 'root', 3112320, ''), file('nano', '755', 'root', 'root', 268432, ''), file('grep', '755', 'root', 'root', 314832, ''), file('awk', '755', 'root', 'root', 445328, ''), file('sed', '755', 'root', 'root', 123456, ''), file('python3', '755', 'root', 'root', 5432100, ''), file('git', '755', 'root', 'root', 3248576, '') ]), dir('lib', '755', 'root', 'root', []), dir('local', '755', 'root', 'root', [ dir('bin', '755', 'root', 'root', []), dir('lib', '755', 'root', 'root', []), dir('share', '755', 'root', 'root', []) ]), dir('share', '755', 'root', 'root', []), dir('sbin', '755', 'root', 'root', []) ]), dir('var', '755', 'root', 'root', [ dir('log', '755', 'root', 'root', [ file('syslog', '640', 'root', 'adm', 524288, 'Jun 2 08:15:01 username CRON[1234]: (root) CMD (test -x /usr/sbin/anacron)'), file('auth.log', '640', 'root', 'adm', 131072, 'Jun 2 08:00:01 username sshd[1234]: Accepted publickey for username'), file('kern.log', '640', 'root', 'adm', 262144, 'Jun 2 08:00:00 username kernel: [ 0.000000] Linux version 6.8.0-generic'), dir('nginx', '755', 'root', 'root', [ file('access.log', '640', 'www-data', 'adm', 1048576, ''), file('error.log', '640', 'www-data', 'adm', 65536, '') ]) ]), dir('www', '755', 'root', 'root', [ dir('html', '755', 'root', 'root', [ file('index.html', '644', 'root', 'root', 612, '<!DOCTYPE html>\n<html>\n<head><title>Welcome</title></head>\n<body>\n<h1>Welcome to nginx!</h1>\n</body>\n</html>\n'), file('50x.html', '644', 'root', 'root', 387, '<!DOCTYPE html>\n<html>\n<head><title>Error</title></head>\n<body>\n<h1>Error</h1>\n</body>\n</html>\n') ]) ]), dir('cache', '755', 'root', 'root', []), dir('tmp', '1777', 'root', 'root', []) ]) ]);
+let fsTree = dir('/', '755', 'root', 'root', [ dir('bin', '755', 'root', 'root', [ file('bash', '755', 'root', 'root', 1113792, ''), file('cat', '755', 'root', 'root', 35808, ''), file('chmod', '755', 'root', 'root', 56432, ''), file('cp', '755', 'root', 'root', 137680, ''), file('find', '755', 'root', 'root', 224960, ''), file('ls', '755', 'root', 'root', 137680, ''), file('mkdir', '755', 'root', 'root', 83472, ''), file('mount', '755', 'root', 'root', 44464, ''), file('rm', '755', 'root', 'root', 65536, ''), file('rmdir', '755', 'root', 'root', 31744, ''), file('tar', '755', 'root', 'root', 450560, ''), file('touch', '755', 'root', 'root', 35808, '') ]), dir('boot', '755', 'root', 'root', [ file('vmlinuz-6.8.0-generic', '644', 'root', 'root', 11690016, ''), file('initrd.img-6.8.0-generic', '644', 'root', 'root', 65431552, ''), file('config-6.8.0-generic', '644', 'root', 'root', 259476, ''), file('System.map-6.8.0-generic', '644', 'root', 'root', 5672841, '') ]), dir('dev', '755', 'root', 'root', [ file('sda', '660', 'root', 'disk', 0, ''), file('sda1', '660', 'root', 'disk', 0, ''), file('sda2', '660', 'root', 'disk', 0, ''), file('sda3', '660', 'root', 'disk', 0, ''), file('sdb', '660', 'root', 'disk', 0, ''), file('null', '666', 'root', 'root', 0, ''), file('zero', '666', 'root', 'root', 0, ''), file('random', '666', 'root', 'root', 0, ''), file('urandom', '666', 'root', 'root', 0, '') ]), dir('etc', '755', 'root', 'root', [ file('hostname', '644', 'root', 'root', 26, 'username-VirtualBox\n'), file('hosts', '644', 'root', 'root', 268, '127.0.0.1\tlocalhost\n127.0.1.1\tusername-VirtualBox\n\n::1\tlocalhost ip6-localhost ip6-loopback\nff02::1\tip6-allnodes\nff02::2\tip6-allrouters\n'), file('passwd', '644', 'root', 'root', 1847, ''), file('shadow', '640', 'root', 'shadow', 1234, ''), file('fstab', '644', 'root', 'root', 589, '# /etc/fstab: static file system information.\n# <file system> <mount point> <type> <options> <dump> <pass>\n/dev/sda1 / ext4 errors=remount-ro 0 1\n/dev/sda2 /home ext4 defaults 0 2\n/dev/sda3 none swap sw 0 0\n'), file('group', '644', 'root', 'root', 687, ''), file('gshadow', '640', 'root', 'shadow', 543, ''), file('resolv.conf', '644', 'root', 'root', 128, 'nameserver 8.8.8.8\nnameserver 8.8.4.4\n'), dir('apt', '755', 'root', 'root', [ dir('sources.list.d', '755', 'root', 'root', []), file('sources.list', '644', 'root', 'root', 2871, 'deb http://archive.ubuntu.com/ubuntu/ noble main restricted\ndeb http://archive.ubuntu.com/ubuntu/ noble-updates main restricted\n') ]), dir('default', '755', 'root', 'root', [ file('grub', '644', 'root', 'root', 1267, 'GRUB_DEFAULT=0\nGRUB_TIMEOUT=5\nGRUB_DISTRIBUTOR="Ubuntu"\n') ]), dir('nginx', '755', 'root', 'root', [ file('nginx.conf', '644', 'root', 'root', 2465, 'user www-data;\nworker_processes auto;\npid /run/nginx.pid;\ninclude /etc/nginx/modules-enabled/*.conf;\n\nevents { \n worker_connections 768;\n } \n\nhttp { \n sendfile on;\n include /etc/nginx/mime.types;\n default_type application/octet-stream;\n access_log /var/log/nginx/access.log;\n error_log /var/log/nginx/error.log;\n include /etc/nginx/sites-enabled/*;\n } \n'), dir('sites-available', '755', 'root', 'root', [ file('default', '644', 'root', 'root', 2413, 'server { \n listen 80 default_server;\n root /var/www/html;\n index index.html;\n server_name _;\n } \n') ]), dir('sites-enabled', '755', 'root', 'root', []) ]), dir('ssh', '755', 'root', 'root', [ file('sshd_config', '644', 'root', 'root', 3256, 'Port 22\nPermitRootLogin prohibit-password\nPubkeyAuthentication yes\n') ]), dir('systemd', '755', 'root', 'root', [ dir('system', '755', 'root', 'root', []) ]) ]), dir('home', '755', 'root', 'root', [ dir('username', '755', 'username', 'username', [ file('.bashrc', '644', 'username', 'username', 3771, '# ~/.bashrc: executed by bash(1) for non-login shells.\nexport PS1=\'\\u@\\h:\\w\\$ \'\n'), file('.profile', '644', 'username', 'username', 807, '# ~/.profile: executed by the command interpreter for login shells.\nif [ -n "$BASH_VERSION" ]; then\n if [ -f "$HOME/.bashrc" ]; then\n . "$HOME/.bashrc"\n fi\nfi\n'), file('.bash_history', '600', 'username', 'username', 4812, ''), file('.bash_logout', '644', 'username', 'username', 220, ''), dir('Desktop', '755', 'username', 'username', []), dir('Documents', '755', 'username', 'username', [ file('readme.txt', '644', 'username', 'username', 256, 'Hello World!\nThis is a sample document.\n'), file('notes.md', '644', 'username', 'username', 1024, '# Notes\n\n## Todo\n- Install packages\n- Configure nginx\n- Deploy app\n') ]), dir('Downloads', '755', 'username', 'username', [ file('archive.tar.gz', '644', 'username', 'username', 52428, ''), file('setup.sh', '755', 'username', 'username', 1847, '#!/bin/bash\necho "Setting up environment..."\napt update && apt upgrade -y\n') ]), dir('Music', '755', 'username', 'username', []), dir('Pictures', '755', 'username', 'username', [ file('screenshot.png', '644', 'username', 'username', 245760, '') ]), dir('Videos', '755', 'username', 'username', []), dir('projects', '755', 'username', 'username', [ file('app.py', '644', 'username', 'username', 1536, '#!/usr/bin/env python3\n\nimport os\nimport sys\n\ndef main():\n print("Hello from app.py")\n\nif __name__ == "__main__":\n main()\n'), file('config.json', '644', 'username', 'username', 512, '{ \n "name": "my-project",\n "version": "1.0.0",\n "debug": false\n } \n'), file('Makefile', '644', 'username', 'username', 384, 'CC=gcc\nCFLAGS=-Wall -g\n\nall: main\n\nmain: main.c\n\t$(CC) $(CFLAGS) -o main main.c\n\nclean:\n\trm -f main\n'), dir('src', '755', 'username', 'username', [ file('main.c', '644', 'username', 'username', 512, '#include <stdio.h>\n\nint main() { \n printf("Hello World!\\n");\n return 0;\n } \n'), file('utils.c', '644', 'username', 'username', 1024, '#include "utils.h"\n\nint add(int a, int b) { \n return a + b;\n } \n'), file('utils.h', '644', 'username', 'username', 128, '#ifndef UTILS_H\n#define UTILS_H\nint add(int a, int b);\n#endif\n') ]), dir('docs', '755', 'username', 'username', [ file('api.md', '644', 'username', 'username', 2048, '# API Documentation\n\n## GET /api/v1/status\nReturns server status.\n'), file('changelog.md', '644', 'username', 'username', 768, '# Changelog\n\n## v1.0.0\n- Initial release\n') ]) ]) ]), dir('user1', '755', 'user1', 'user1', [ file('.bashrc', '644', 'user1', 'user1', 3771, ''), file('.profile', '644', 'user1', 'user1', 807, '') ]), dir('user2', '755', 'user2', 'user2', [ file('.bashrc', '644', 'user2', 'user2', 3771, ''), file('.profile', '644', 'user2', 'user2', 807, '') ]) ]), dir('lib', '755', 'root', 'root', [ dir('x86_64-linux-gnu', '755', 'root', 'root', [ file('libc.so.6', '755', 'root', 'root', 2216304, ''), file('libpthread.so.0', '755', 'root', 'root', 146768, ''), file('libm.so.6', '755', 'root', 'root', 1339568, '') ]) ]), dir('mnt', '755', 'root', 'root', []), dir('media', '755', 'root', 'root', [ dir('username', '750', 'username', 'username', []) ]), dir('opt', '755', 'root', 'root', []), dir('proc', '555', 'root', 'root', []), dir('root', '700', 'root', 'root', []), dir('run', '755', 'root', 'root', []), dir('sbin', '755', 'root', 'root', [ file('fdisk', '755', 'root', 'root', 188416, ''), file('mkfs', '755', 'root', 'root', 31744, ''), file('mkfs.ext4', '755', 'root', 'root', 31744, ''), file('mkfs.xfs', '755', 'root', 'root', 31744, ''), file('mkfs.vfat', '755', 'root', 'root', 31744, '') ]), dir('srv', '755', 'root', 'root', []), dir('sys', '555', 'root', 'root', []), dir('tmp', '1777', 'root', 'root', []), dir('usr', '755', 'root', 'root', [ dir('bin', '755', 'root', 'root', [ file('vim', '755', 'root', 'root', 3112320, ''), file('nano', '755', 'root', 'root', 268432, ''), file('grep', '755', 'root', 'root', 314832, ''), file('awk', '755', 'root', 'root', 445328, ''), file('sed', '755', 'root', 'root', 123456, ''), file('python3', '755', 'root', 'root', 5432100, ''), file('git', '755', 'root', 'root', 3248576, '') ]), dir('lib', '755', 'root', 'root', []), dir('local', '755', 'root', 'root', [ dir('bin', '755', 'root', 'root', []), dir('lib', '755', 'root', 'root', []), dir('share', '755', 'root', 'root', []) ]), dir('share', '755', 'root', 'root', []), dir('sbin', '755', 'root', 'root', []) ]), dir('var', '755', 'root', 'root', [ dir('log', '755', 'root', 'root', [ file('syslog', '640', 'root', 'adm', 524288, 'Jun 2 08:15:01 username CRON[1234]: (root) CMD (test -x /usr/sbin/anacron)'), file('auth.log', '640', 'root', 'adm', 131072, 'Jun 2 08:00:01 username sshd[1234]: Accepted publickey for username'), file('kern.log', '640', 'root', 'adm', 262144, 'Jun 2 08:00:00 username kernel: [ 0.000000] Linux version 6.8.0-generic'), dir('nginx', '755', 'root', 'root', [ file('access.log', '640', 'www-data', 'adm', 1048576, ''), file('error.log', '640', 'www-data', 'adm', 65536, '') ]) ]), dir('www', '755', 'root', 'root', [ dir('html', '755', 'root', 'root', [ file('index.html', '644', 'root', 'root', 612, '<!DOCTYPE html>\n<html>\n<head><title>Welcome</title></head>\n<body>\n<h1>Welcome to nginx!</h1>\n</body>\n</html>\n'), file('50x.html', '644', 'root', 'root', 387, '<!DOCTYPE html>\n<html>\n<head><title>Error</title></head>\n<body>\n<h1>Error</h1>\n</body>\n</html>\n') ]) ]), dir('cache', '755', 'root', 'root', []), dir('tmp', '1777', 'root', 'root', []) ]) ]);
 // 磁盘分区表
-const diskPartitions = {
+// ─── 日志时间戳动态化：跟随真实系统时间，避免硬编码日期一成不变 ───
+(function refreshLogTimestamps() {
+    const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const now = new Date();
+    const p2 = v => String(v).padStart(2, '0');
+    const ts = (h, m, s) => MON[now.getMonth()] + ' ' + String(now.getDate()).padStart(2, ' ') + ' ' + p2(h) + ':' + p2(m) + ':' + p2(s);
+    const patch = (path, gen) => { const n = getNode(path); if (n) { n.content = gen(); n.size = n.content.length; } };
+    patch('/var/log/syslog', () => ts(8, 15, 1) + ' username CRON[1234]: (root) CMD (test -x /usr/sbin/anacron)\n' + ts(8, 16, 1) + ' username systemd[1]: Started Daily apt download activities.');
+    patch('/var/log/auth.log', () => ts(8, 0, 1) + ' username sshd[1234]: Accepted publickey for username');
+    patch('/var/log/kern.log', () => ts(8, 0, 0) + ' username kernel: [    0.000000] Linux version 6.8.0-generic (buildd@ubuntu) (gcc 13.2.0) #1 SMP PREEMPT_DYNAMIC');
+})();
+let diskPartitions = {
     '/dev/sda': {
         model: 'Samsung SSD 870 EVO 500GB', size: 500107862016, sectors: 976773168, sectorSize: 512, partitions: [ {
             num: 1, start: 2048, end: 209735679, sectors: 209733632, size: '100G', type: 'Linux', fs: 'ext4', mount: '/'
@@ -209,13 +232,18 @@ function formatLsEntry(node, showAll) {
     let group = node.group.padEnd(10);
     let size = String(node.size).padStart(8);
     let mtime = node.mtime;
-    let name = node.name;
-    if (node.type === 'link') name += ` -> ${node.linkTarget} `;
+    let name = escapeHtml(node.name);
+    if (node.type === 'link') name += ` -> ${escapeHtml(node.linkTarget)} `;
     if (node.type === 'dir') name = `<span style="color:#4ae234;font-weight:bold;">${name} </span>`;
     else if (node.permissions.includes('x') || permStr(node.permissions).endsWith('x')) name = `<span style="color:#4ae234;">${name} </span>`;
     return `${t} ${p} ${links} ${owner} ${group} ${size} ${mtime} ${name} `;
 }
 let currentMode = 'COMMAND';
+let cmdHistory = [];      // 输入历史（history 命令与 ↑/↓ 导航共用）
+let histNavIdx = 0;
+let sudoFailCount = 0;    // sudo 密码连续输错次数（两次后显示默认密码提示）
+let lastExit = 0;         // 上一条命令的退出码（0 成功），供 && / || 判断
+let cmdElevated = false;  // 当前命令是否持特权（root 登录，或带 sudo 前缀且已认证）
 let cachedSudoCmd = '';
 let passwdTarget = '';
 let passwdFirstInput = '';
@@ -252,11 +280,24 @@ cmdInput.addEventListener('keydown', function(e) {
         }
         return;
     }
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+        if (currentMode === 'COMMAND' && cmdHistory.length > 0) {
+            e.preventDefault();
+            if (e.key === 'ArrowUp') histNavIdx = Math.max(0, histNavIdx - 1);
+            else histNavIdx = Math.min(cmdHistory.length, histNavIdx + 1);
+            this.value = histNavIdx < cmdHistory.length ? cmdHistory[histNavIdx] : '';
+        }
+        return;
+    }
     if (e.key === 'Enter') {
         const val = this.value;
         this.value = '';
         if (currentMode === 'COMMAND') {
-            if (val.trim()) preCheckSudo(val.trim());
+            if (val.trim()) {
+                cmdHistory.push(val.trim());
+                histNavIdx = cmdHistory.length;
+                preCheckSudo(val.trim());
+            }
         }
         else if (currentMode === 'SUDO_AUTH') {
             handleSudoAuth(val);
@@ -269,7 +310,7 @@ cmdInput.addEventListener('keydown', function(e) {
         }
         else if (currentMode === 'FDISK') {
             const line = document.createElement('div');
-            line.innerHTML = `<span class="prompt">命令(输入 m 获取帮助): </span><span>${val} </span>`;
+            line.innerHTML = `<span class="prompt">命令(输入 m 获取帮助): </span><span>${escapeHtml(val)} </span>`;
             historyContainer.appendChild(line);
             handleFdiskCommand(val);
         }
@@ -304,6 +345,7 @@ function updatePrompt() {
         else if (cwd === '/') displayCwd = '/';
         promptSpan.innerText = `${state.currentUser}@${deviceName}:${displayCwd}${sign} `;
         document.querySelector('.title').innerText = `${state.currentUser}@${deviceName}: ${displayCwd} `;
+        document.title = `${state.currentUser}@${deviceName}: ${displayCwd}`;
     }
 }
 // ─── 设备命名事件监听器（在所有依赖定义之后注册）───
@@ -444,12 +486,15 @@ function handleFdiskCommand(cmd) {
         showAndStay();
         break;
     }
+    saveVmSnapshot();
 }
 function preCheckSudo(fullRawCmd) {
-    let args = fullRawCmd.split(/\s+/);
-    if (args[0] === 'sudo' && !state.isRoot && !state.sudoAuthenticated) {
+    // 任一管道/命令链分段以 sudo 开头且未认证时，先走密码认证再执行整行
+    const segs = fullRawCmd.split(/[;|&]+/).map(s => s.trim());
+    const needsSudo = !state.isRoot && !state.sudoAuthenticated && segs.some(s => s === 'sudo' || s.startsWith('sudo '));
+    if (needsSudo) {
         const line = document.createElement('div');
-        line.innerHTML = `<span class="prompt">${promptSpan.innerText} </span><span>${fullRawCmd} </span>`;
+        line.innerHTML = `<span class="prompt">${promptSpan.innerText} </span><span>${escapeHtml(fullRawCmd)} </span>`;
         historyContainer.appendChild(line);
         currentMode = 'SUDO_AUTH';
         cachedSudoCmd = fullRawCmd;
@@ -464,14 +509,16 @@ function handleSudoAuth(inputPassword) {
     historyContainer.appendChild(line);
     if (inputPassword === state.passwords[state.currentUser]) {
         state.sudoAuthenticated = true;
+        sudoFailCount = 0;
         currentMode = 'COMMAND';
         updatePrompt();
         executePipeline(cachedSudoCmd, false);
     }
     else {
+        sudoFailCount++;
         const errLine = document.createElement('div');
         errLine.className = 'output-row error';
-        errLine.innerText = "抱歉，请重试。";
+        errLine.innerText = "抱歉，请重试。" + (sudoFailCount >= 2 ? "\n（提示：默认密码为当前用户名；也可以按 Ctrl+Shift+P 自动填充）" : "");
         historyContainer.appendChild(errLine);
         currentMode = 'SUDO_AUTH';
         updatePrompt();
@@ -522,36 +569,222 @@ function executePipeline(fullRawCmd, needEcho) {
     if (needEcho) {
         if (!(historyContainer.lastChild && historyContainer.lastChild.innerText.includes(fullRawCmd))) {
             const line = document.createElement('div');
-            line.innerHTML = `<span class="prompt">${promptSpan.innerText} </span><span>${fullRawCmd} </span>`;
+            line.innerHTML = `<span class="prompt">${promptSpan.innerText} </span><span>${escapeHtml(fullRawCmd)} </span>`;
             historyContainer.appendChild(line);
         }
     }
-    // Split by && and execute each command in sequence
-let parts = fullRawCmd.split(/\s*&&\s*/);
-    for (let i = 0;
-    i < parts.length;
-    i++) {
-        let cmd = parts[i].trim();
-        if (!cmd) continue;
-        // Strip leading sudo for checking the base command
-let checkCmd = cmd.replace(/^sudo\s+/, '');
-        if (checkCmd.startsWith('apt ') || checkCmd.startsWith('apt-get ')) {
-            let out = document.createElement('div');
-            out.className = 'output-row';
-            state.gnomeInstalled = true;
-            out.innerHTML = "正在读取软件包列表... 完成\n正在分析软件包的依赖关系树... 完成\n<span class='success'>正在设置 gnome-system-tools (3.6.0-5ubuntu3) ... 完成</span>";
-            historyContainer.appendChild(out);
-        }
-        else {
-            executeCommand(cmd);
+    // 按 ";" 分段顺序执行；段内按 "&&"/"||" 依据上一命令退出码决定是否继续；
+    // 简单命令内支持 "|" 管道与 ">"/">>" 重定向
+    for (let seg of fullRawCmd.split(';')) {
+        const parts = seg.split(/\s*(&&|\|\|)\s*/);
+        for (let pi = 0; pi < parts.length; pi += 2) {
+            let cmd = parts[pi].trim();
+            if (!cmd) continue;
+            if (pi > 0) {
+                const joiner = parts[pi - 1];
+                if (joiner === '&&' && lastExit !== 0) continue;
+                if (joiner === '||' && lastExit === 0) continue;
+            }
+            // Strip leading sudo for checking the base command
+            let checkCmd = cmd.replace(/^sudo\s+/, '');
+            if (checkCmd.startsWith('apt ') || checkCmd.startsWith('apt-get ')) {
+                let out = document.createElement('div');
+                out.className = 'output-row';
+                state.gnomeInstalled = true;
+                out.innerHTML = "正在读取软件包列表... 完成\n正在分析软件包的依赖关系树... 完成\n<span class='success'>正在设置 gnome-system-tools (3.6.0-5ubuntu3) ... 完成</span>";
+                historyContainer.appendChild(out);
+            }
+            else {
+                runSimpleCommand(cmd);
+            }
         }
     }
+    saveVmSnapshot();
+}
+// ─── 管道 / 重定向支持 ───
+let pipeStdin = null;   // 管道上游输出的纯文本；非管道场景为 null
+// 解析行尾重定向：返回 {mode, target, rest} 或 null
+function parseRedirect(cmd) {
+    const m = cmd.match(/\s(>>?)\s*([^\s>|;&]+)\s*$/);
+    return m ? { mode: m[1], target: m[2], rest: cmd.slice(0, m.index).trim() } : null;
+}
+function splitPipe(cmd) {
+    return cmd.split('|').map(s => s.trim()).filter(Boolean);
+}
+// 把捕获的 DOM 元素还原为纯文本（<br> 与块级元素转换行，textContent 自动解码实体）
+function domToText(el) {
+    if (el.nodeType !== 1) return el.nodeValue || '';
+    if (el.tagName === 'BR') return '\n';
+    let out = '';
+    for (const c of el.childNodes) out += domToText(c);
+    if (/^(DIV|P|PRE)$/.test(el.tagName) && out && !out.endsWith('\n')) out += '\n';
+    return out;
+}
+// 捕获模式执行：拦截输出到页面的行为，改为收集纯文本（供管道/重定向使用）
+function runCaptured(cmd, stdin) {
+    const captured = [];
+    const origAppend = historyContainer.appendChild;
+    historyContainer.appendChild = function (el) { captured.push(el); return el; };
+    const prevStdin = pipeStdin;
+    pipeStdin = stdin;
+    try { executeCommand(cmd); }
+    finally {
+        historyContainer.appendChild = origAppend;
+        pipeStdin = prevStdin;
+    }
+    return captured.map(el => domToText(el)).join('');
+}
+// 把文本写入重定向目标文件（支持 >> 追加；/dev/null 直接丢弃）
+function writeRedirFile(target, text, append) {
+    const abs = resolvePath(target);
+    if (abs === '/dev/null') return;
+    const { parent, name } = getParentAndName(abs);
+    if (!parent || parent.type !== 'dir') {
+        const out = document.createElement('div');
+        out.className = 'output-row';
+        out.innerHTML = `<span class="error">bash: ${escapeHtml(target)}: 没有那个文件或目录</span>`;
+        historyContainer.appendChild(out);
+        return;
+    }
+    const idx = parent.children.findIndex(c => c.name === name && c.type === 'file');
+    if (append && idx >= 0) {
+        const n = parent.children[idx];
+        n.content = (n.content || '') + text;
+        n.size = n.content.length;
+    }
+    else {
+        if (idx >= 0) parent.children.splice(idx, 1);
+        parent.children.push(file(name, '644', state.currentUser, state.currentUser, text.length, text));
+    }
+}
+// 执行一条简单命令（解析管道与重定向；忽略 2>&1 / 2>/dev/null 这类 stderr 重定向）
+function runSimpleCommand(cmd) {
+    cmd = cmd.replace(/\s2>&1(?=\s|$)/g, '').replace(/\s2>\/dev\/null(?=\s|$)/g, '').trim();
+    const red = parseRedirect(cmd);
+    const body = red ? red.rest : cmd;
+    const stages = splitPipe(body);
+    if (stages.length === 0) return;
+    if (stages.length === 1 && !red) { executeCommand(cmd); return; }
+    let stdin = null;
+    for (let i = 0; i < stages.length; i++) {
+        const s = stages[i];
+        if (/^clear(\s|$)/.test(s)) continue; // clear 不参与管道
+        const isLast = i === stages.length - 1;
+        if (isLast && !red) {
+            // 末段直接执行并显示，同时把上游 stdin 传入
+            pipeStdin = stdin;
+            try { executeCommand(s); } finally { pipeStdin = null; }
+        }
+        else {
+            stdin = runCaptured(s, stdin);
+        }
+    }
+    if (red) writeRedirFile(red.target, stdin == null ? '' : stdin, red.mode === '>>');
+}
+// ─── 文本命令的纯函数实现（便于单元测试）───
+// 读取文本源：优先管道 stdin，其次拼接文件内容；出错时向 output 写入错误并返回 null
+function readInputStream(files, output) {
+    if (typeof pipeStdin === 'string') return { text: pipeStdin, name: null };
+    if (!files || files.length === 0) return { text: '', name: null };
+    const parts = [];
+    for (const f of files) {
+        const node = getNode(resolvePath(f));
+        if (!node) { output.innerHTML = `<span class="error">${escapeHtml(f)}: 没有那个文件或目录</span>`; return null; }
+        if (node.type === 'dir') { output.innerHTML = `<span class="error">${escapeHtml(f)}: 是一个目录</span>`; return null; }
+        if (!canRead(node)) { output.innerHTML = `<span class="error">${escapeHtml(f)}: 权限不够</span>`; return null; }
+        parts.push(node.content || '');
+    }
+    return { text: parts.join('\n'), name: files.length === 1 ? files[0] : null };
+}
+// grep 核心：返回 [{no, text}]（no 为 1 起始行号）；无效正则按字面量处理
+function grepLines(lines, pattern, opts) {
+    opts = opts || {};
+    let re;
+    try { re = new RegExp(pattern, opts.i ? 'i' : ''); }
+    catch (e) { re = new RegExp(pattern.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), opts.i ? 'i' : ''); }
+    return lines
+        .map((text, i) => ({ no: i + 1, text: text }))
+        .filter(l => re.test(l.text) !== !!opts.v);
+}
+// sort 核心：-n 按数值，否则按本地化字典序
+function sortLines(lines, opts) {
+    const arr = lines.slice();
+    arr.sort(opts && opts.n ? (a, b) => (parseFloat(a) || 0) - (parseFloat(b) || 0)
+                                   : (a, b) => a.localeCompare(b, 'zh-Hans-CN'));
+    return arr;
+}
+// 判断当前用户对节点是否有执行权限（owner/group/other 分位判断）
+function canExecute(node) {
+    if (cmdElevated) return true;
+    const p = parseInt(node.permissions, 8) || 0;
+    if (node.owner === state.currentUser) return !!(p & 0x40);
+    if (myGroups().includes(node.group)) return !!(p & 0x8);
+    return !!(p & 0x1);
+}
+// 当前用户所属的组列表
+function myGroups() {
+    return Object.entries(state.groups).filter(([g, v]) => (v.members || []).includes(state.currentUser)).map(([g]) => g);
+}
+// 读权限（owner/group/other 三段判断）
+function canRead(node) {
+    if (cmdElevated) return true;
+    const p = parseInt(node.permissions, 8) || 0;
+    if (node.owner === state.currentUser) return !!(p & 0x100);
+    if (myGroups().includes(node.group)) return !!(p & 0x10);
+    return !!(p & 0x4);
+}
+// 写权限
+function canWrite(node) {
+    if (cmdElevated) return true;
+    const p = parseInt(node.permissions, 8) || 0;
+    if (node.owner === state.currentUser) return !!(p & 0x80);
+    if (myGroups().includes(node.group)) return !!(p & 0x10);
+    return !!(p & 0x2);
+}
+// 通配符匹配：返回按字典序排列的匹配名（bash 默认 * 不跨目录、不匹配隐藏文件）
+function globMatch(pattern) {
+    const abs = resolvePath(pattern);
+    const dirPart = abs.substring(0, abs.lastIndexOf('/')) || '/';
+    const namePat = abs.substring(abs.lastIndexOf('/') + 1);
+    const dirNode = getNode(dirPart);
+    if (!dirNode || dirNode.type !== 'dir') return [];
+    const re = new RegExp('^' + namePat.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*').replace(/\?/g, '.') + '$');
+    const prefix = pattern.includes('/') ? pattern.slice(0, pattern.lastIndexOf('/') + 1) : '';
+    return dirNode.children
+        .filter(c => re.test(c.name) && (c.name.startsWith('.') === namePat.startsWith('.')))
+        .sort((a, b) => a.name.localeCompare(b.name))
+        .map(c => prefix + c.name);
+}
+// 对命令参数做通配符展开（保留命令名、sudo、-name/-iname 的参数不展开）
+function expandArgs(args) {
+    const out = [];
+    for (let i = 0; i < args.length; i++) {
+        const a = args[i];
+        if (i === 0 || a === 'sudo' || (i > 0 && (args[i - 1] === '-name' || args[i - 1] === '-iname'))) { out.push(a); continue; }
+        if ((a.includes('*') || a.includes('?')) && !a.startsWith('-')) {
+            const m = globMatch(a);
+            out.push(...(m.length ? m : [a]));
+        }
+        else out.push(a);
+    }
+    return out;
+}
+// 交互终端的环境变量展开
+function expandEnv(s) {
+    return String(s).replace(/\$(USER|HOME|PWD|SHELL|HOSTNAME)/g, (m, v) =>
+        v === 'USER' ? state.currentUser :
+        v === 'HOME' ? '/home/' + state.currentUser :
+        v === 'PWD' ? cwd :
+        v === 'SHELL' ? '/bin/bash' : deviceName);
 }
 function executeCommand(rawCmd) {
     const output = document.createElement('div');
     output.className = 'output-row';
     output.contentEditable = true;
-    let args = rawCmd.split(/\s+/);
+    lastExit = 0;
+    let args = expandArgs(rawCmd.split(/\s+/));
+    // sudo 时间戳只对带 sudo 前缀的命令生效（与真实 Ubuntu 一致）
+    cmdElevated = state.isRoot || (args[0] === 'sudo' && state.sudoAuthenticated);
     let baseCmd = args[0] === 'sudo' ? args[1] : args[0];
     // Per-script read pools for simulation
 let scriptReadPools = {
@@ -566,15 +799,15 @@ let scriptReadPools = {
             output.innerHTML = `<span class="error">用法: gpasswd [选项] 组</span>\n选项:\n -a, --add USER 将用户添加到组\n -d, --delete USER 将用户从组中删除`;
         }
         else if (!state.groups[groupArg]) {
-            output.innerHTML = `<span class="error">gpasswd: 组 '${groupArg}' 不存在</span>`;
+            output.innerHTML = `<span class="error">gpasswd: 组 '${escapeHtml(groupArg)}' 不存在</span>`;
         }
         else if (!state.users[userArg]) {
-            output.innerHTML = `<span class="error">gpasswd: 用户 '${userArg}' 不存在</span>`;
+            output.innerHTML = `<span class="error">gpasswd: 用户 '${escapeHtml(userArg)}' 不存在</span>`;
         }
         else if (opt === '-a') {
             if (!state.groups[groupArg].members) state.groups[groupArg].members = [];
             if (state.groups[groupArg].members.includes(userArg)) {
-                output.innerHTML = `<span class="error">gpasswd: 用户 '${userArg}' 已经是组 '${groupArg}' 的成员</span>`;
+                output.innerHTML = `<span class="error">gpasswd: 用户 '${escapeHtml(userArg)}' 已经是组 '${escapeHtml(groupArg)}' 的成员</span>`;
             }
             else {
                 state.groups[groupArg].members.push(userArg);
@@ -583,7 +816,7 @@ let scriptReadPools = {
         }
         else if (opt === '-d') {
             if (!state.groups[groupArg].members || !state.groups[groupArg].members.includes(userArg)) {
-                output.innerHTML = `<span class="error">gpasswd: 用户 '${userArg}' 不是组 '${groupArg}' 的成员</span>`;
+                output.innerHTML = `<span class="error">gpasswd: 用户 '${escapeHtml(userArg)}' 不是组 '${escapeHtml(groupArg)}' 的成员</span>`;
             }
             else {
                 state.groups[groupArg].members = state.groups[groupArg].members.filter(m => m !== userArg);
@@ -615,7 +848,7 @@ let scriptReadPools = {
                 if (gmNewGid) backupObj.gid = gmNewGid;
                 if (gmNewName && gmNewName !== targetG) {
                     if (state.groups[gmNewName]) {
-                        output.innerHTML = `<span class="error">groupmod: 组 '${gmNewName}' 已存在</span>`;
+                        output.innerHTML = `<span class="error">groupmod: 组 '${escapeHtml(gmNewName)}' 已存在</span>`;
                     }
                     else {
                         state.groups[gmNewName] = backupObj;
@@ -625,11 +858,11 @@ let scriptReadPools = {
                 }
             }
             else if (targetG) {
-                output.innerHTML = `<span class="error">groupmod: 组 '${targetG}' 不存在</span>`;
+                output.innerHTML = `<span class="error">groupmod: 组 '${escapeHtml(targetG)}' 不存在</span>`;
             }
             break;
         }
-        case 'groupadd': case 'addgroup': let newGName = args[args.length - 1];
+        case 'groupadd': case 'addgroup': let newGName = sanitizeName(args[args.length - 1]);
         let idxGAdd = args.indexOf('--gid');
         let allocatedGID = Math.floor(Math.random()*100)+1100;
         if (idxGAdd !== -1 && args[idxGAdd + 1]) allocatedGID = parseInt(args[idxGAdd + 1]);
@@ -640,7 +873,7 @@ let scriptReadPools = {
             output.innerText = `Adding group \`${newGName}' (${allocatedGID} ) ... 完成`;
         }
         else if (newGName) {
-            output.innerHTML = `<span class="error">groupadd: 组 '${newGName}' 已存在</span>`;
+            output.innerHTML = `<span class="error">groupadd: 组 '${escapeHtml(newGName)}' 已存在</span>`;
         }
         break;
         case 'groupdel': case 'delgroup': let targetDelGroup = '';
@@ -654,9 +887,185 @@ let scriptReadPools = {
             output.innerText = `groupdel: 组 '${targetDelGroup}' 已删除`;
         }
         else {
-            output.innerHTML = `<span class="error">groupdel: 组 '${targetDelGroup}' 不存在</span>`;
+            output.innerHTML = `<span class="error">groupdel: 组 '${escapeHtml(targetDelGroup)}' 不存在</span>`;
         }
         break;
+        // ─── 基础文本命令：echo / date / history / man ───
+        case 'true': break;
+        case 'false': output.innerHTML = ''; break;
+        case 'echo': {
+            let text = rawCmd.replace(/^\s*(sudo\s+)?echo\s*/, '');
+            let noNL = false;
+            if (/^-n\s/.test(text)) { noNL = true; text = text.replace(/^-n\s*/, ''); }
+            text = text.replace(/^(['"])([\s\S]*)\1$/, '$2');
+            text = expandEnv(text);
+            output.innerText = text + (noNL ? '' : '\n');
+            break;
+        }
+        case 'date': {
+            const WD = ['星期日','星期一','星期二','星期三','星期四','星期五','星期六'];
+            const MON2 = ['1月','2月','3月','4月','5月','6月','7月','8月','9月','10月','11月','12月'];
+            const n = new Date();
+            const p2 = v => String(v).padStart(2, '0');
+            output.innerText = `${n.getFullYear()}年 ${MON2[n.getMonth()]} ${n.getDate()}日 ${WD[n.getDay()]} ${p2(n.getHours())}:${p2(n.getMinutes())}:${p2(n.getSeconds())} CST`;
+            break;
+        }
+        case 'history': {
+            output.innerText = cmdHistory.map((h, i) => String(i + 1).padStart(4) + '  ' + h).join('\n');
+            break;
+        }
+        case 'man': {
+            const MAN_PAGES = {
+                'ls': 'LS(1)\n\n名称\n    ls - 列出目录内容\n\n用法\n    ls [选项]... [文件]...\n\n常用选项\n    -a  显示所有条目（包括以 . 开头的）\n    -l  使用长格式列出\n    -h  与 -l 一起使用，以人类可读的单位显示大小',
+                'cat': 'CAT(1)\n\n名称\n    cat - 连接文件并打印到标准输出\n\n用法\n    cat [选项]... [文件]...\n\n说明\n    没有指定文件时读取标准输入（支持管道）',
+                'grep': 'GREP(1)\n\n名称\n    grep - 打印匹配模式的行\n\n用法\n    grep [选项]... 模式 [文件]...\n\n常用选项\n    -i  忽略大小写\n    -n  显示行号\n    -v  反转匹配\n    -c  只输出匹配行的数量',
+                'head': 'HEAD(1)\n\n名称\n    head - 输出文件的前几行\n\n用法\n    head [选项]... [文件]...\n\n常用选项\n    -n N  输出前 N 行（默认 10）',
+                'tail': 'TAIL(1)\n\n名称\n    tail - 输出文件的最后几行\n\n用法\n    tail [选项]... [文件]...\n\n常用选项\n    -n N  输出最后 N 行（默认 10）',
+                'wc': 'WC(1)\n\n名称\n    wc - 统计每个文件的行数、单词数和字节数\n\n用法\n    wc [选项]... [文件]...\n\n常用选项\n    -l 行数  -w 单词数  -c 字节数',
+                'chmod': 'CHMOD(1)\n\n名称\n    chmod - 更改文件模式（权限）\n\n用法\n    chmod [选项]... 模式[,模式]... 文件...\n\n常用模式\n    u/g/o ± r/w/x，或八进制（如 755）',
+                'chown': 'CHOWN(1)\n\n名称\n    chown - 更改文件所有者和组\n\n用法\n    chown [选项]... [所有者][:[组]] 文件...\n\n常用选项\n    -R  递归处理目录及其内容',
+                'useradd': 'USERADD(8)\n\n名称\n    useradd - 创建新用户或更新默认新用户信息\n\n用法\n    useradd [选项] 登录名\n\n常用选项\n    -m  创建用户主目录\n    -g  指定主组'
+            };
+            const manCmd = (args.find(a => !a.startsWith('-') && a !== 'man' && a !== 'sudo') || '').trim();
+            if (!manCmd) output.innerHTML = `<span class="error">您要寻找的手册页是什么？</span>`;
+            else if (MAN_PAGES[manCmd]) output.innerText = MAN_PAGES[manCmd];
+            else output.innerHTML = `<span class="error">没有 ${escapeHtml(manCmd)} 的 manual 条目</span>`;
+            break;
+        }
+        // ─── 文本处理：grep / head / tail / wc / sort（支持管道 stdin）───
+        case 'grep': {
+            let optI = false, optN = false, optV = false, optC = false;
+            const rest = [];
+            for (const a of args) {
+                if (a === 'sudo' || a === 'grep') continue;
+                if (/^-[invci]+$/.test(a)) {
+                    if (a.includes('i')) optI = true;
+                    if (a.includes('n')) optN = true;
+                    if (a.includes('v')) optV = true;
+                    if (a.includes('c')) optC = true;
+                }
+                else rest.push(a);
+            }
+            if (rest.length === 0) { output.innerHTML = `<span class="error">用法: grep [选项]... 模式 [文件]...</span>`; break; }
+            const src = readInputStream(rest.slice(1), output);
+            if (src === null) break;
+            const picked = grepLines(src.text.split('\n'), rest[0], { i: optI, v: optV });
+            lastExit = picked.length ? 0 : 1;   // 真实 grep 无匹配时退出码为 1
+            if (optC) output.innerText = String(picked.length);
+            else output.innerText = picked.map(l => (optN ? l.no + ':' : '') + escapeHtml(l.text)).join('\n');
+            break;
+        }
+        case 'head':
+        case 'tail': {
+            const isHead = baseCmd === 'head';
+            let n = 10;
+            const rest = [];
+            const hArgs = args.filter(a => a !== 'sudo' && a !== baseCmd);
+            for (let i = 0; i < hArgs.length; i++) {
+                if (hArgs[i] === '-n' && hArgs[i + 1]) { n = parseInt(hArgs[i + 1], 10) || 10; i++; }
+                else if (/^-\d+$/.test(hArgs[i])) n = parseInt(hArgs[i].slice(1), 10);
+                else if (!hArgs[i].startsWith('-')) rest.push(hArgs[i]);
+            }
+            const src = readInputStream(rest, output);
+            if (src === null) break;
+            let lines = src.text.split('\n');
+            if (lines.length && lines[lines.length - 1] === '') lines.pop();
+            const picked = isHead ? lines.slice(0, n) : lines.slice(Math.max(0, lines.length - n));
+            output.innerText = picked.map(escapeHtml).join('\n');
+            break;
+        }
+        case 'wc': {
+            let onlyL = false, onlyW = false, onlyC = false;
+            const rest = [];
+            for (const a of args) {
+                if (a === 'sudo' || a === 'wc') continue;
+                if (a === '-l') { onlyL = true; continue; }
+                if (a === '-w') { onlyW = true; continue; }
+                if (a === '-c') { onlyC = true; continue; }
+                if (!a.startsWith('-')) rest.push(a);
+            }
+            const src = readInputStream(rest, output);
+            if (src === null) break;
+            const text = src.text;
+            const nl = text === '' ? 0 : text.replace(/\n$/, '').split('\n').length;
+            const nw = text.trim() ? text.trim().split(/\s+/).length : 0;
+            const fields = onlyL ? [nl] : onlyW ? [nw] : onlyC ? [text.length] : [nl, nw, text.length];
+            output.innerText = fields.map(v => String(v).padStart(8)).join('') + (src.name ? ' ' + src.name : '');
+            break;
+        }
+        case 'sort': {
+            let rev = false, num = false;
+            const rest = [];
+            for (const a of args) {
+                if (a === 'sudo' || a === 'sort') continue;
+                if (a === '-r') { rev = true; continue; }
+                if (a === '-n') { num = true; continue; }
+                if (!a.startsWith('-')) rest.push(a);
+            }
+            const src = readInputStream(rest, output);
+            if (src === null) break;
+            let lines = src.text.split('\n');
+            if (lines.length && lines[lines.length - 1] === '') lines.pop();
+            lines = sortLines(lines, { n: num });
+            if (rev) lines.reverse();
+            output.innerText = lines.map(escapeHtml).join('\n');
+            break;
+        }
+        // ─── 链接与属主：ln / chown / chgrp ───
+        case 'ln': {
+            let sym = false;
+            const rest = [];
+            for (const a of args) {
+                if (a === 'sudo' || a === 'ln') continue;
+                if (a === '-s') { sym = true; continue; }
+                if (!a.startsWith('-')) rest.push(a);
+            }
+            if (rest.length === 0) { output.innerHTML = `<span class="error">ln: 缺少文件操作数</span>`; break; }
+            if (rest.length < 2) { output.innerHTML = `<span class="error">ln: 缺少目标文件操作数</span>`; break; }
+            const tgt = rest[0], linkName = rest[1];
+            const abs = resolvePath(linkName);
+            if (getNode(abs)) { output.innerHTML = `<span class="error">ln: 创建符号链接 '${escapeHtml(linkName)}' 失败: 文件已存在</span>`; break; }
+            const { parent, name } = getParentAndName(abs);
+            if (!parent || parent.type !== 'dir') { output.innerHTML = `<span class="error">ln: ${escapeHtml(linkName)}: 没有那个文件或目录</span>`; break; }
+            if (sym) {
+                parent.children.push(link(name, tgt));
+            }
+            else {
+                const srcNode = getNode(resolvePath(tgt));
+                if (!srcNode) { output.innerHTML = `<span class="error">ln: 无法创建硬链接 '${escapeHtml(linkName)}': 没有那个文件或目录</span>`; break; }
+                parent.children.push(file(name, srcNode.permissions, state.currentUser, state.currentUser, srcNode.size, srcNode.content));
+            }
+            break;
+        }
+        case 'chown':
+        case 'chgrp': {
+            const isChown = baseCmd === 'chown';
+            const cArgs = args.filter(a => a !== 'sudo' && a !== baseCmd && a !== '-R');
+            if (cArgs.length < 2) { output.innerHTML = `<span class="error">${isChown ? 'chown' : 'chgrp'}: 缺少操作数</span>`; break; }
+            const spec = cArgs[0];
+            const files = cArgs.slice(1);
+            let owner = null, grp = null;
+            if (isChown) {
+                const ci = spec.indexOf(':');
+                owner = ci >= 0 ? spec.slice(0, ci) : spec;
+                grp = ci >= 0 ? spec.slice(ci + 1) : null;
+                if (owner && !state.users[owner]) { output.innerHTML = `<span class="error">chown: 无效的用户: '${escapeHtml(owner)}'</span>`; break; }
+                if (ci >= 0 && spec.length === 1) { output.innerHTML = `<span class="error">chown: 无效的属主: '${escapeHtml(spec)}'</span>`; break; }
+            }
+            else grp = spec;
+            if (grp && !state.groups[grp]) { output.innerHTML = `<span class="error">${isChown ? 'chown' : 'chgrp'}: 无效的组: '${escapeHtml(grp)}'</span>`; break; }
+            for (const f of files) {
+                const node = getNode(resolvePath(f));
+                if (!node) { output.innerHTML = `<span class="error">${isChown ? 'chown' : 'chgrp'}: 无法访问 '${escapeHtml(f)}': 没有那个文件或目录</span>`; break; }
+                if (!cmdElevated && node.owner !== state.currentUser) {
+                    output.innerHTML = `<span class="error">${isChown ? 'chown' : 'chgrp'}: 更改 '${escapeHtml(f)}' 的所有者失败: 只允许超级用户修改</span>`;
+                    break;
+                }
+                if (isChown && owner) node.owner = owner;
+                if (grp) node.group = grp;
+            }
+            break;
+        }
         case 'id': {
             let idArgs = args.filter(a => a !== 'sudo' && a !== 'id');
             let idName = idArgs[0] || state.currentUser;
@@ -676,7 +1085,7 @@ let scriptReadPools = {
                 output.innerText = `uid=${u.uid} (${idName} ) gid=${primaryGid} (${idName} ) 组=${groupList} `;
             }
             else {
-                output.innerHTML = `<span class="error">id: '${idName}': no such user</span>`;
+                output.innerHTML = `<span class="error">id: '${escapeHtml(idName)}': no such user</span>`;
             }
             break;
         }
@@ -701,7 +1110,7 @@ let scriptReadPools = {
                 output.innerText = `root : root`;
             }
             else if (!state.users[gName]) {
-                output.innerHTML = `<span class="error">groups: '${gName}': no such user</span>`;
+                output.innerHTML = `<span class="error">groups: '${escapeHtml(gName)}': no such user</span>`;
             }
             else {
                 let memberships = [];
@@ -738,7 +1147,8 @@ let scriptReadPools = {
         case 'cat': {
             let catFiles = args.filter(a => a !== 'sudo' && a !== 'cat');
             if (catFiles.length === 0) {
-                output.innerHTML = `<span class="error">cat: 缺少文件操作数</span>`;
+                if (typeof pipeStdin === 'string') output.innerText = pipeStdin;
+                else output.innerHTML = `<span class="error">cat: 缺少文件操作数</span>`;
                 break;
             }
             let catOutput = [];
@@ -746,14 +1156,14 @@ let scriptReadPools = {
                 if (catFile === '/etc/group') {
                     let txt = '';
                     for (let g in state.groups) {
-                        txt += `${g} :x:${ state.groups[g].gid } :${ (state.groups[g].members||[]).join(',') } \n`;
+                        txt += `${escapeHtml(g)} :x:${ state.groups[g].gid } :${ (state.groups[g].members||[]).map(escapeHtml).join(',') } \n`;
                     }
                     catOutput.push(txt.trim());
                 }
                 else if (catFile === '/etc/passwd') {
                     let txt = '';
                     for (let u in state.users) {
-                        txt += `${u} :x:${ state.users[u].uid } :1000::/home/${u} :/bin/bash\n`;
+                        txt += `${escapeHtml(u)} :x:${ state.users[u].uid } :1000::/home/${escapeHtml(u)} :/bin/bash\n`;
                     }
                     catOutput.push(txt.trim());
                 }
@@ -764,7 +1174,7 @@ let scriptReadPools = {
                     else {
                         let txt = '';
                         for (let u in state.users) {
-                            txt += `${u} :${ state.passwords[u] ? '!' : '*' } :19876:0:99999:7:::\n`;
+                            txt += `${escapeHtml(u)} :${ state.passwords[u] ? '!' : '*' } :19876:0:99999:7:::\n`;
                         }
                         catOutput.push(txt.trim());
                     }
@@ -776,7 +1186,7 @@ let scriptReadPools = {
                     else {
                         let txt = '';
                         for (let g in state.groups) {
-                            txt += `${g} :*::${ (state.groups[g].members||[]).join(',') } \n`;
+                            txt += `${escapeHtml(g)} :*::${ (state.groups[g].members||[]).map(escapeHtml).join(',') } \n`;
                         }
                         catOutput.push(txt.trim());
                     }
@@ -785,16 +1195,19 @@ let scriptReadPools = {
                     let absPath = resolvePath(catFile);
                     let node = getNode(absPath);
                     if (!node) {
-                        catOutput.push(`<span class="error">cat: ${catFile} : 没有那个文件或目录</span>`);
+                        catOutput.push(`<span class="error">cat: ${escapeHtml(catFile)} : 没有那个文件或目录</span>`);
                     }
                     else if (node.type === 'dir') {
-                        catOutput.push(`<span class="error">cat: ${catFile} : 是一个目录</span>`);
+                        catOutput.push(`<span class="error">cat: ${escapeHtml(catFile)} : 是一个目录</span>`);
                     }
                     else if (node.type === 'link') {
-                        catOutput.push(`<span class="error">cat: ${catFile} : 是一个符号链接</span>`);
+                        catOutput.push(`<span class="error">cat: ${escapeHtml(catFile)} : 是一个符号链接</span>`);
+                    }
+                    else if (!canRead(node)) {
+                        catOutput.push(`<span class="error">cat: ${escapeHtml(catFile)}: 权限不够</span>`);
                     }
                     else {
-                        catOutput.push(node.content || '');
+                        catOutput.push(escapeHtml(node.content || ''));
                     }
                 }
             }
@@ -844,9 +1257,11 @@ let scriptReadPools = {
                 output.innerHTML = `<span class="error">useradd: 未指定用户名\n用法: useradd [选项] 登录</span>`;
             }
             else if (state.users[newUser]) {
-                output.innerHTML = `<span class="error">useradd: 用户 '${newUser}' 已存在</span>`;
+                output.innerHTML = `<span class="error">useradd: 用户 '${escapeHtml(newUser)}' 已存在</span>`;
             }
             else {
+                newUser = sanitizeName(newUser);
+                if (!newUser) { output.innerHTML = `<span class="error">useradd: 无效的用户名</span>`; break; }
                 let newUid = uOpts.uid || (Math.max(1000, ...Object.values(state.users).map(u => u.uid)) + 1);
                 state.users[newUser] = {
                     uid: newUid, real: newUser, type: '标准', pwdState: '登录时询问'
@@ -893,9 +1308,11 @@ let scriptReadPools = {
                 output.innerHTML = `<span class="error">adduser: 请指定用户名\n用法: adduser [选项] 用户名</span>`;
             }
             else if (state.users[auUser]) {
-                output.innerHTML = `<span class="error">adduser: 用户 '${auUser}' 已存在</span>`;
+                output.innerHTML = `<span class="error">adduser: 用户 '${escapeHtml(auUser)}' 已存在</span>`;
             }
             else {
+                auUser = sanitizeName(auUser);
+                if (!auUser) { output.innerHTML = `<span class="error">adduser: 无效的用户名</span>`; break; }
                 let newUid = Math.max(1000, ...Object.values(state.users).map(u => u.uid)) + 1;
                 state.users[auUser] = {
                     uid: newUid, real: auUser, type: '标准', pwdState: '登录时询问'
@@ -925,10 +1342,10 @@ let scriptReadPools = {
                 output.innerHTML = `<span class="error">userdel: 未指定用户名\n用法: userdel [选项] 登录</span>`;
             }
             else if (!state.users[delUser]) {
-                output.innerHTML = `<span class="error">userdel: 用户 '${delUser}' 不存在</span>`;
+                output.innerHTML = `<span class="error">userdel: 用户 '${escapeHtml(delUser)}' 不存在</span>`;
             }
             else if (delUser === state.currentUser) {
-                output.innerHTML = `<span class="error">userdel: 不能删除当前登录的用户 '${delUser}'</span>`;
+                output.innerHTML = `<span class="error">userdel: 不能删除当前登录的用户 '${escapeHtml(delUser)}'</span>`;
             }
             else {
                 delete state.users[delUser];
@@ -959,7 +1376,7 @@ let scriptReadPools = {
                 break;
             }
             if (!state.users[umUser]) {
-                output.innerHTML = `<span class="error">usermod: 用户 '${umUser}' 不存在</span>`;
+                output.innerHTML = `<span class="error">usermod: 用户 '${escapeHtml(umUser)}' 不存在</span>`;
                 break;
             }
             let umError = false;
@@ -970,7 +1387,7 @@ let scriptReadPools = {
                 if (umArgs[i] === '-l' && umArgs[i+1]) {
                     let newName = umArgs[++i];
                     if (state.users[newName]) {
-                        output.innerHTML = `<span class="error">usermod: 用户 '${newName}' 已存在</span>`;
+                        output.innerHTML = `<span class="error">usermod: 用户 '${escapeHtml(newName)}' 已存在</span>`;
                         umError = true;
                         break;
                     }
@@ -995,7 +1412,7 @@ let scriptReadPools = {
                 else if (umArgs[i] === '-g' && umArgs[i+1]) {
                     let newPrimary = umArgs[++i];
                     if (!state.groups[newPrimary]) {
-                        output.innerHTML = `<span class="error">usermod: 组 '${newPrimary}' 不存在</span>`;
+                        output.innerHTML = `<span class="error">usermod: 组 '${escapeHtml(newPrimary)}' 不存在</span>`;
                         break;
                     }
                     if (!state.groups[newPrimary].members.includes(umUser)) state.groups[newPrimary].members.push(umUser);
@@ -1038,7 +1455,7 @@ let scriptReadPools = {
             let deleteMode = pwArgs.includes('-d');
             let statusMode = pwArgs.includes('-S');
             if (!state.users[pwUser]) {
-                output.innerHTML = `<span class="error">passwd: 用户 '${pwUser}' 不存在</span>`;
+                output.innerHTML = `<span class="error">passwd: 用户 '${escapeHtml(pwUser)}' 不存在</span>`;
             }
             else if (lockMode) {
                 state.users[pwUser].pwdState = '已锁定';
@@ -1088,7 +1505,7 @@ let scriptReadPools = {
                 }
             }
             else if (!state.users[suUser]) {
-                output.innerHTML = `<span class="error">su: 用户 '${suUser}' 不存在</span>`;
+                output.innerHTML = `<span class="error">su: 用户 '${escapeHtml(suUser)}' 不存在</span>`;
             }
             else {
                 state.currentUser = suUser;
@@ -1106,7 +1523,7 @@ let scriptReadPools = {
                 output.innerHTML = `<span class="error">chage: 未指定用户名\n用法: chage [选项] 登录</span>`;
             }
             else if (!state.users[chUser]) {
-                output.innerHTML = `<span class="error">chage: 用户 '${chUser}' 不存在</span>`;
+                output.innerHTML = `<span class="error">chage: 用户 '${escapeHtml(chUser)}' 不存在</span>`;
             }
             else if (chList) {
                 output.innerText = `最近一次密码修改时间\t\t\t：1月 01, 2026\n密码过期时间\t\t\t\t：从不\n密码失效时间\t\t\t\t：从不\n账户过期时间\t\t\t\t：从不\n两次改变密码之间相距的最小天数\t\t：0\n两次改变密码之间相距的最大天数\t\t：99999\n在密码过期之前警告的天数\t\t\t：7`;
@@ -1140,10 +1557,10 @@ let scriptReadPools = {
             let absPath = resolvePath(cdTarget);
             let node = getNode(absPath);
             if (!node) {
-                output.innerHTML = `<span class="error">bash: cd: ${cdTarget} : 没有那个文件或目录</span>`;
+                output.innerHTML = `<span class="error">bash: cd: ${escapeHtml(cdTarget)} : 没有那个文件或目录</span>`;
             }
             else if (node.type !== 'dir') {
-                output.innerHTML = `<span class="error">bash: cd: ${cdTarget} : 不是目录</span>`;
+                output.innerHTML = `<span class="error">bash: cd: ${escapeHtml(cdTarget)} : 不是目录</span>`;
             }
             else {
                 cwd = absPath === '/' ? '/' : absPath;
@@ -1163,7 +1580,7 @@ let scriptReadPools = {
                 let absPath = resolvePath(t);
                 let node = getNode(absPath);
                 if (!node) {
-                    allLines.push(`<span class="error">ls: 无法访问 '${t}': 没有那个文件或目录</span>`);
+                    allLines.push(`<span class="error">ls: 无法访问 '${escapeHtml(t)}': 没有那个文件或目录</span>`);
                     continue;
                 }
                 if (node.type === 'file') {
@@ -1171,11 +1588,11 @@ let scriptReadPools = {
                         allLines.push(formatLsEntry(node, showAll));
                     }
                     else {
-                        allLines.push(node.name);
+                        allLines.push(escapeHtml(node.name));
                     }
                     continue;
                 }
-                if (targets.length > 1) allLines.push(`${absPath} :`);
+                if (targets.length > 1) allLines.push(`${escapeHtml(absPath)} :`);
                 let entries = [...node.children];
                 if (showAll) {
                     entries.unshift( {
@@ -1203,8 +1620,8 @@ let scriptReadPools = {
                 }
                 else {
                     let names = entries.map(e => {
-                        if (e.type === 'dir') return `<span style="color:#4ae234;font-weight:bold;">${e.name} </span>`;
-                        return e.name;
+                        if (e.type === 'dir') return `<span style="color:#4ae234;font-weight:bold;">${escapeHtml(e.name)} </span>`;
+                        return escapeHtml(e.name);
                     }
                     );
                     allLines.push(names.join(' '));
@@ -1225,7 +1642,7 @@ let scriptReadPools = {
             for (let d of mkDirs) {
                 let absPath = resolvePath(d);
                 if (getNode(absPath)) {
-                    output.innerHTML = `<span class="error">mkdir: 无法创建目录 '${d}': 文件已存在</span>`;
+                    output.innerHTML = `<span class="error">mkdir: 无法创建目录 '${escapeHtml(d)}': 文件已存在</span>`;
                     break;
                 }
                 if (mkParents) {
@@ -1242,7 +1659,7 @@ let scriptReadPools = {
                             current = child;
                         }
                         else {
-                            output.innerHTML = `<span class="error">mkdir: 无法创建目录 '${d}': 不是目录</span>`;
+                            output.innerHTML = `<span class="error">mkdir: 无法创建目录 '${escapeHtml(d)}': 不是目录</span>`;
                             break;
                         }
                     }
@@ -1250,7 +1667,7 @@ let scriptReadPools = {
                 else {
                     let { parent, name } = getParentAndName(absPath);
                     if (!parent || parent.type !== 'dir') {
-                        output.innerHTML = `<span class="error">mkdir: 无法创建目录 '${d}': 没有那个文件或目录</span>`;
+                        output.innerHTML = `<span class="error">mkdir: 无法创建目录 '${escapeHtml(d)}': 没有那个文件或目录</span>`;
                         break;
                     }
                     parent.children.push(dir(name, '755', state.currentUser, state.currentUser));
@@ -1270,15 +1687,15 @@ let scriptReadPools = {
                 let absPath = resolvePath(d);
                 let node = getNode(absPath);
                 if (!node) {
-                    output.innerHTML = `<span class="error">rmdir: 无法删除 '${d}': 没有那个文件或目录</span>`;
+                    output.innerHTML = `<span class="error">rmdir: 无法删除 '${escapeHtml(d)}': 没有那个文件或目录</span>`;
                     break;
                 }
                 if (node.type !== 'dir') {
-                    output.innerHTML = `<span class="error">rmdir: 无法删除 '${d}': 不是目录</span>`;
+                    output.innerHTML = `<span class="error">rmdir: 无法删除 '${escapeHtml(d)}': 不是目录</span>`;
                     break;
                 }
                 if (node.children.length > 0) {
-                    output.innerHTML = `<span class="error">rmdir: 无法删除 '${d}': 目录非空</span>`;
+                    output.innerHTML = `<span class="error">rmdir: 无法删除 '${escapeHtml(d)}': 目录非空</span>`;
                     break;
                 }
                 let { parent } = getParentAndName(absPath);
@@ -1303,7 +1720,7 @@ let scriptReadPools = {
                 else {
                     let { parent, name } = getParentAndName(absPath);
                     if (!parent || parent.type !== 'dir') {
-                        output.innerHTML = `<span class="error">touch: 无法创建 '${f}': 没有那个文件或目录</span>`;
+                        output.innerHTML = `<span class="error">touch: 无法创建 '${escapeHtml(f)}': 没有那个文件或目录</span>`;
                         break;
                     }
                     parent.children.push(file(name, '644', state.currentUser, state.currentUser, 0, ''));
@@ -1325,11 +1742,15 @@ let scriptReadPools = {
                 let absPath = resolvePath(t);
                 let node = getNode(absPath);
                 if (!node) {
-                    if (!rmForce) output.innerHTML = `<span class="error">rm: 无法删除 '${t}': 没有那个文件或目录</span>`;
+                    if (!rmForce) output.innerHTML = `<span class="error">rm: 无法删除 '${escapeHtml(t)}': 没有那个文件或目录</span>`;
                     break;
                 }
                 if (node.type === 'dir' && !rmRecursive) {
-                    output.innerHTML = `<span class="error">rm: 无法删除 '${t}': 是一个目录</span>`;
+                    output.innerHTML = `<span class="error">rm: 无法删除 '${escapeHtml(t)}': 是一个目录</span>`;
+                    break;
+                }
+                if (!canWrite(node)) {
+                    output.innerHTML = `<span class="error">rm: 无法删除 '${escapeHtml(t)}': 权限不够</span>`;
                     break;
                 }
                 let { parent } = getParentAndName(absPath);
@@ -1350,11 +1771,11 @@ let scriptReadPools = {
             let dstPath = resolvePath(cpTargets[1]);
             let srcNode = getNode(srcPath);
             if (!srcNode) {
-                output.innerHTML = `<span class="error">cp: 无法获取 '${ cpTargets[0] }' 的文件状态: 没有那个文件或目录</span>`;
+                output.innerHTML = `<span class="error">cp: 无法获取 '${escapeHtml(cpTargets[0])}' 的文件状态: 没有那个文件或目录</span>`;
                 break;
             }
             if (srcNode.type === 'dir' && !cpRecursive) {
-                output.innerHTML = `<span class="error">cp: -r 未指定; 略过目录 '${ cpTargets[0] }'</span>`;
+                output.innerHTML = `<span class="error">cp: -r 未指定; 略过目录 '${escapeHtml(cpTargets[0])}'</span>`;
                 break;
             }
             let dstNode = getNode(dstPath);
@@ -1366,7 +1787,7 @@ let scriptReadPools = {
             else {
                 let { parent, name } = getParentAndName(dstPath);
                 if (!parent || parent.type !== 'dir') {
-                    output.innerHTML = `<span class="error">cp: 无法创建普通文件 '${ cpTargets[1] }': 没有那个文件或目录</span>`;
+                    output.innerHTML = `<span class="error">cp: 无法创建普通文件 '${escapeHtml(cpTargets[1])}': 没有那个文件或目录</span>`;
                     break;
                 }
                 let newNode = JSON.parse(JSON.stringify(srcNode));
@@ -1391,14 +1812,18 @@ let scriptReadPools = {
                 // symbolic mode like +x, u+x, go-w, a+rx — accept
             }
             else {
-                output.innerHTML = `<span class="error">chmod: 无效的模式: '${mode}'</span>`;
+                output.innerHTML = `<span class="error">chmod: 无效的模式: '${escapeHtml(mode)}'</span>`;
                 break;
             }
             for (let f of cmFiles) {
                 let absPath = resolvePath(f);
                 let node = getNode(absPath);
                 if (!node) {
-                    output.innerHTML = `<span class="error">chmod: 无法访问 '${f}': 没有那个文件或目录</span>`;
+                    output.innerHTML = `<span class="error">chmod: 无法访问 '${escapeHtml(f)}': 没有那个文件或目录</span>`;
+                    break;
+                }
+                if (!cmdElevated && node.owner !== state.currentUser) {
+                    output.innerHTML = `<span class="error">chmod: 更改 '${escapeHtml(f)}' 的权限失败: 操作不允许</span>`;
                     break;
                 }
                 if (/^[0-7]{3,4}$/.test(mode)) {
@@ -1454,7 +1879,7 @@ let scriptReadPools = {
             let absStart = resolvePath(fdPath);
             let startNode = getNode(absStart);
             if (!startNode) {
-                output.innerHTML = `<span class="error">find: '${fdPath}': 没有那个文件或目录</span>`;
+                output.innerHTML = `<span class="error">find: '${escapeHtml(fdPath)}': 没有那个文件或目录</span>`;
                 break;
             }
             let results = [];
@@ -1514,7 +1939,7 @@ let scriptReadPools = {
                     let absPath = resolvePath(f);
                     let node = getNode(absPath);
                     if (!node) {
-                        lines.push(`<span class="error">file: '${f}': 没有那个文件或目录</span>`);
+                        lines.push(`<span class="error">file: '${escapeHtml(f)}': 没有那个文件或目录</span>`);
                     }
                     else if (node.type === 'dir') {
                         lines.push(`${f} : directory`);
@@ -1595,7 +2020,7 @@ let scriptReadPools = {
                 let absPath = resolvePath(tarFile);
                 let node = getNode(absPath);
                 if (!node) {
-                    output.innerHTML = `<span class="error">tar: ${tarFile} : 无法 open: 没有那个文件或目录</span>`;
+                    output.innerHTML = `<span class="error">tar: ${escapeHtml(tarFile)} : 无法 open: 没有那个文件或目录</span>`;
                 }
                 else {
                     let targetDir = tarTargets.length > 0 ? resolvePath(tarTargets[0]) : cwd;
@@ -1610,7 +2035,7 @@ let scriptReadPools = {
                 let absPath = resolvePath(tarFile);
                 let node = getNode(absPath);
                 if (!node) {
-                    output.innerHTML = `<span class="error">tar: ${tarFile} : 无法 open: 没有那个文件或目录</span>`;
+                    output.innerHTML = `<span class="error">tar: ${escapeHtml(tarFile)} : 无法 open: 没有那个文件或目录</span>`;
                 }
                 else {
                     output.innerText = `file1.txt\nfile2.txt\ndir1/\ndir1/file3.txt`;
@@ -1656,7 +2081,7 @@ let scriptReadPools = {
             else if (devPath) {
                 let disk = diskPartitions[devPath];
                 if (!disk) {
-                    output.innerHTML = `<span class="error">fdisk: 无法打开 ${devPath} : 没有那个设备</span>`;
+                    output.innerHTML = `<span class="error">fdisk: 无法打开 ${escapeHtml(devPath)} : 没有那个设备</span>`;
                     break;
                 }
                 fdiskDisk = devPath;
@@ -1706,7 +2131,7 @@ let scriptReadPools = {
                 }
             }
             if (!found) {
-                output.innerHTML = `<span class="error">mkfs: ${target} : 没有那个设备或地址</span>`;
+                output.innerHTML = `<span class="error">mkfs: ${escapeHtml(target)} : 没有那个设备或地址</span>`;
             }
             break;
         }
@@ -1755,7 +2180,7 @@ let scriptReadPools = {
                 }
             }
             if (!found) {
-                output.innerHTML = `<span class="error">mount: ${mtDevice} : 没有那个设备</span>`;
+                output.innerHTML = `<span class="error">mount: ${escapeHtml(mtDevice)} : 没有那个设备</span>`;
             }
             break;
         }
@@ -1781,7 +2206,7 @@ let scriptReadPools = {
             let absPath = resolvePath(duPath);
             let node = getNode(absPath);
             if (!node) {
-                output.innerHTML = `<span class="error">du: '${duPath}': 没有那个文件或目录</span>`;
+                output.innerHTML = `<span class="error">du: '${escapeHtml(duPath)}': 没有那个文件或目录</span>`;
                 break;
             }
             function calcSize(n) {
@@ -1803,7 +2228,7 @@ let scriptReadPools = {
             let bashAbs = resolvePath(shFile);
             let bashNode = getNode(bashAbs);
             if (!bashNode || bashNode.type !== 'file') {
-                output.innerHTML = `<span class="error">bash: ${shFile} : 没有那个文件或目录</span>`;
+                output.innerHTML = `<span class="error">bash: ${escapeHtml(shFile)} : 没有那个文件或目录</span>`;
                 break;
             }
             let fileName = shFile.split('/').pop();
@@ -1817,7 +2242,10 @@ let scriptReadPools = {
             let scriptAbs = resolvePath(baseCmd);
             let scriptNode = getNode(scriptAbs);
             if (!scriptNode || scriptNode.type !== 'file') {
-                output.innerHTML = `<span class="error">${baseCmd} : command not found</span>`;
+                output.innerHTML = `<span class="error">bash: ${escapeHtml(baseCmd)}: 没有那个文件或目录</span>`;
+            }
+            else if (!canExecute(scriptNode)) {
+                output.innerHTML = `<span class="error">bash: ${escapeHtml(baseCmd)}: 权限不够</span>`;
             }
             else {
                 let fileName2 = baseCmd.split('/').pop();
@@ -1826,10 +2254,11 @@ let scriptReadPools = {
             }
         }
         else {
-            output.innerHTML = `<span class="error">${baseCmd} : command not found</span>`;
+            output.innerHTML = `<span class="error">${escapeHtml(baseCmd)} : command not found</span>`;
         }
         break;
     }
+    if (('' + output.innerHTML).includes('class="error"')) lastExit = 1;
     if (output.innerText.trim() || output.innerHTML.trim()) {
         historyContainer.appendChild(output);
     }
@@ -1856,7 +2285,8 @@ window.selectGroupItem = function(gName) {
 window.addNewGroupIntoGui = function() {
     let newG = prompt('请输入新组的名称(G):');
     if (newG && newG.trim()) {
-        newG = newG.trim();
+        newG = sanitizeName(newG);
+        if (!newG) return;
         if (!state.groups[newG]) {
             state.groups[newG] = {
                 gid: Math.floor(Math.random()*100)+1100, members: []
@@ -1889,7 +2319,8 @@ window.selectMainGroupItem = function(gName, el) {
 window.addGroupInMainGui = function(btn) {
     let newG = prompt('请输入新组的名称:');
     if (newG && newG.trim()) {
-        newG = newG.trim();
+        newG = sanitizeName(newG);
+        if (!newG) return;
         if (!state.groups[newG]) {
             state.groups[newG] = {
                 gid: Math.floor(Math.random()*100)+1100, members: []
@@ -1998,7 +2429,8 @@ window.selectPhotoUser = function(username, el) {
 window.addUserInGui = function(btn) {
     const n = prompt('请输入要添加的用户名:');
     if (!n || !n.trim()) return;
-    const name = n.trim();
+    const name = sanitizeName(n);
+    if (!name) { alert('无效的用户名'); return; }
     if (state.users[name]) {
         alert('用户已存在');
         return;
@@ -2398,6 +2830,10 @@ function renderEditorShortcutPanel() {
     if (scriptExp) toggleExpInEditor(scriptExp.id);
 }
 // ─── HTML 转义 ───
+// 名字统一过滤：禁止用户名/组名中出现 HTML、引号等危险字符（与真实系统的命名限制方向一致）
+function sanitizeName(n) {
+    return String(n == null ? '' : n).replace(/[^\w\u4e00-\u9fa5-]/g, '').slice(0, 32);
+}
 function escapeHtml(s) {
     return String(s == null ? '' : s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 }
@@ -2426,13 +2862,14 @@ function saveEditorScript() {
     parent.children.push(file(name, '644', state.currentUser, state.currentUser, content.length, content));
     closeScriptEditor();
     const line = document.createElement('div');
-    line.innerHTML = `<span class="prompt">${promptSpan.innerText}</span><span>保存脚本: ${filename}</span>`;
+    line.innerHTML = `<span class="prompt">${promptSpan.innerText}</span><span>保存脚本: ${escapeHtml(filename)}</span>`;
     historyContainer.appendChild(line);
     const out = document.createElement('div');
     out.className = 'output-row';
-    out.innerHTML = `<span class="success">脚本已保存到 ${filePath}</span>`;
+    out.innerHTML = `<span class="success">脚本已保存到 ${escapeHtml(filePath)}</span>`;
     historyContainer.appendChild(out);
     outputArea.scrollTop = outputArea.scrollHeight;
+    saveVmSnapshot();
 }
 function toggleEditorHelp() { document.getElementById('editorHelpPanel').classList.toggle('open'); }
 // ─── Shell 脚本模拟执行器 ───
@@ -2872,7 +3309,11 @@ function simulateScript(content, scriptPath, customReadPool) {
                     else state._readOutputBuf = (state._readOutputBuf||'') + expandedPrompt;
                 }
                 if (readVars.length > 0) {
-                    let inputVal = readIdx < readPool.length ? readPool[readIdx++] : '0';
+                    let inputVal;
+                    // 交互运行：弹窗请求真实输入，预置答案仅作默认值
+                    const def = readIdx < readPool.length ? readPool[readIdx++] : '';
+                    inputVal = window.prompt(expandedPrompt || ('请输入 ' + (readVars[0] || '变量') + ' 的值：'), def);
+                    if (inputVal === null) inputVal = def;
                     if (!state._cmdSubCapture) result += inputVal + '\n';
                     else state._readOutputBuf = (state._readOutputBuf||'') + inputVal + '\n';
                     let firstVar = readVars[0];
@@ -3328,6 +3769,47 @@ function resetExpData() {
     updateManageStats();
     alert('已恢复默认实验结构！');
 }
+// ─── 虚拟机快照：文件系统与用户/组状态持久化 ───
+const VM_SNAPSHOT_KEY = 'ubuntu_terminal_vm_v2';
+let vmSaveTimer = null;
+function saveVmSnapshot() {
+    if (!state.currentUser) return;
+    clearTimeout(vmSaveTimer);
+    vmSaveTimer = setTimeout(function () {
+        try {
+            localStorage.setItem(VM_SNAPSHOT_KEY, JSON.stringify({
+                v: 2, name: state.currentUser, device: deviceName,
+                fsTree: fsTree, users: state.users, passwords: state.passwords, groups: state.groups,
+                cwd: cwd, isRoot: state.isRoot, sudoAuthenticated: state.sudoAuthenticated,
+                disk: diskPartitions, hist: cmdHistory
+            }));
+        } catch (e) { /* 存储配额不足时静默放弃快照 */ }
+    }, 250);
+}
+function tryRestoreVm(name) {
+    try {
+        const raw = localStorage.getItem(VM_SNAPSHOT_KEY);
+        if (!raw) return false;
+        const snap = JSON.parse(raw);
+        if (!snap || snap.v !== 2 || snap.name !== name || !snap.fsTree) return false;
+        fsTree = snap.fsTree;
+        state.users = snap.users || state.users;
+        state.passwords = snap.passwords || state.passwords;
+        state.groups = snap.groups || state.groups;
+        state.isRoot = !!snap.isRoot;
+        state.sudoAuthenticated = !!snap.sudoAuthenticated;
+        cwd = snap.cwd || ('/home/' + name);
+        if (snap.device) deviceName = snap.device;
+        if (snap.disk) diskPartitions = snap.disk;
+        if (Array.isArray(snap.hist)) { cmdHistory = snap.hist; histNavIdx = cmdHistory.length; }
+        return true;
+    } catch (e) { return false; }
+}
+window.resetVm = function () {
+    if (!confirm('确定要重置虚拟机吗？\n所有文件、用户与组的改动都会丢失。')) return;
+    localStorage.removeItem(VM_SNAPSHOT_KEY);
+    location.reload();
+};
 // ─── 初始化：加载持久化数据 + 渲染两个面板 ───
 loadExperiments();
 renderShortcutPanel();
