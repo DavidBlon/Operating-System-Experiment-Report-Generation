@@ -454,6 +454,30 @@
             font-size: 12px; color: #555; font-weight: bold;
         }
 
+        /* ─── 题库备份面板 ─── */
+        .backup-overlay {
+            display: none; position: fixed; inset: 0; z-index: 1200;
+            background: rgba(0,0,0,0.45); align-items: center; justify-content: center;
+        }
+        .backup-dialog {
+            background: #fff; border-radius: 8px; width: 460px; max-width: 94vw;
+            max-height: 80vh; display: flex; flex-direction: column; overflow: hidden;
+            font-family: 'Ubuntu Mono', Consolas, monospace;
+        }
+        .backup-title {
+            background: #4a3752; color: #fff; padding: 12px 14px; font-weight: bold;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .backup-title .manage-close { color: #fff; cursor: pointer; font-size: 16px; }
+        .backup-hint { padding: 10px 14px; font-size: 12px; color: #666; line-height: 1.5; border-bottom: 1px solid #e3e1dc; }
+        .backup-list { overflow-y: auto; padding: 8px 14px; }
+        .backup-item {
+            display: flex; align-items: center; gap: 10px; padding: 8px 4px;
+            border-bottom: 1px solid #efeee9; font-size: 13px; color: #333;
+        }
+        .backup-item .backup-time { flex: 1; }
+        .backup-item .backup-size { color: #888; min-width: 64px; text-align: right; }
+
         /* ─── 响应式：窄屏适配 ─── */
         @media (max-width: 900px) {
             body { padding: 8px; }

@@ -2747,6 +2747,73 @@ function pushExperimentsToServer() {
         }).catch(e => console.warn('题库上传服务器失败', e));
     }, 800);
 }
+// ─── 题库备份与恢复（每次修改自动备份 JSON，保留 3 个月，最近 10 份保底）───
+function openBackupPanel() {
+    closeManagePanel();
+    let overlay = document.getElementById('backupOverlay');
+    if (!overlay) {
+        overlay = document.createElement('div');
+        overlay.id = 'backupOverlay';
+        overlay.className = 'backup-overlay';
+        overlay.innerHTML = '<div class="backup-dialog">'
+            + '<div class="backup-title">🕘 题库备份与恢复'
+            + '<div class="manage-close" onclick="closeBackupPanel()">✕</div></div>'
+            + '<div class="backup-hint">每次题库被修改，修改前的版本都会自动备份到服务器（保留 3 个月，最近 10 份永不清理）。点击"恢复"可回滚到对应版本；恢复前当前版本也会先备份，随时可以再撤销。</div>'
+            + '<div class="backup-list" id="backupList"><div class="pane-empty">加载中...</div></div>'
+            + '</div>';
+        document.body.appendChild(overlay);
+    }
+    overlay.style.display = 'flex';
+    fetch('api/backups.php')
+        .then(r => r.json())
+        .then(j => {
+            const box = document.getElementById('backupList');
+            if (!box) return;
+            if (!j || j.ok !== true || !Array.isArray(j.backups) || j.backups.length === 0) {
+                box.innerHTML = '<div class="pane-empty">暂无备份（第一次修改题库后自动产生）</div>';
+                return;
+            }
+            box.innerHTML = j.backups.map(b =>
+                '<div class="backup-item">'
+                + '<span class="backup-time">' + escapeHtml(b.time) + '</span>'
+                + '<span class="backup-size">' + escapeHtml(b.size) + '</span>'
+                + '<button class="manage-btn" onclick="restoreBackup(\'' + b.name + '\')">恢复</button>'
+                + '</div>'
+            ).join('');
+        })
+        .catch(() => {
+            const box = document.getElementById('backupList');
+            if (box) box.innerHTML = '<div class="pane-empty">加载失败（服务器不可用？）</div>';
+        });
+}
+function closeBackupPanel() {
+    const el = document.getElementById('backupOverlay');
+    if (el) el.style.display = 'none';
+}
+function restoreBackup(name) {
+    if (!confirm('确定要把题库恢复到这份备份吗？\n当前版本会先自动备份，不会丢失。')) return;
+    fetch('api/backups.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: name })
+    })
+        .then(r => r.json())
+        .then(j => {
+            if (j && j.ok === true) {
+                alert('恢复成功！');
+                closeBackupPanel();
+                expSessionDirty = false;   // 允许拉取恢复后的题库并刷新界面
+                loadSharedExperimentsFromServer();
+            }
+            else {
+                alert('恢复失败：' + ((j && j.error) || '未知错误'));
+            }
+        })
+        .catch(() => alert('恢复失败：网络错误'));
+}
+window.openBackupPanel = openBackupPanel;
+window.closeBackupPanel = closeBackupPanel;
+window.restoreBackup = restoreBackup;
 function getExpById(eid) {
     return experiments.find(e => e.id === eid);
 }
