@@ -32,12 +32,18 @@ function backup_current_bank($pdo) {
     $dir = bank_dir();
     if (!is_dir($dir)) @mkdir($dir, 0755, true);
     if (!file_exists($dir . '/index.html')) @file_put_contents($dir . '/index.html', ''); // 防目录列览
+    // 初始版本永久留档：origin.json 只创建一次，永不覆盖、永不过期、清理逻辑不涉及
+    $origin = $dir . '/origin.json';
+    if (!file_exists($origin)) {
+        @file_put_contents($origin, $current);
+        @chmod($origin, 0444); // 只读，防手滑覆盖
+    }
     $name = 'bank_' . date('Ymd_His') . '_' . bin2hex(random_bytes(2)) . '.json';
     @file_put_contents($dir . '/' . $name, $current);
     cleanup_backups($dir);
 }
 
-// 清理超过保留期的备份（最近 BACKUP_KEEP_MIN 份保底保留）
+// 清理超过保留期的备份（最近 BACKUP_KEEP_MIN 份保底保留；origin.json 不在此列，永不清理）
 function cleanup_backups($dir) {
     $files = glob($dir . '/bank_*.json');
     if (!$files) return;

@@ -10,16 +10,27 @@ $dir = bank_dir();
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
 
 if ($method === 'GET') {
-    if (!is_dir($dir)) resp(['ok' => true, 'backups' => []]);
-    $files = glob($dir . '/bank_*.json');
-    if ($files) usort($files, function ($a, $b) { return filemtime($b) <=> filemtime($a); });
     $out = [];
-    foreach (array_slice($files ?: [], 0, 100) as $f) {
+    // 初始版本置顶展示（origin.json 永久保留）
+    $origin = $dir . '/origin.json';
+    if (is_file($origin)) {
         $out[] = [
-            'name' => basename($f),
-            'time' => date('Y-m-d H:i:s', filemtime($f)),
-            'size' => number_format(filesize($f) / 1024, 1) . ' KB',
+            'name' => 'origin.json',
+            'time' => date('Y-m-d H:i:s', filemtime($origin)),
+            'size' => number_format(filesize($origin) / 1024, 1) . ' KB',
+            'origin' => true,
         ];
+    }
+    if (is_dir($dir)) {
+        $files = glob($dir . '/bank_*.json');
+        if ($files) usort($files, function ($a, $b) { return filemtime($b) <=> filemtime($a); });
+        foreach (array_slice($files ?: [], 0, 100) as $f) {
+            $out[] = [
+                'name' => basename($f),
+                'time' => date('Y-m-d H:i:s', filemtime($f)),
+                'size' => number_format(filesize($f) / 1024, 1) . ' KB',
+            ];
+        }
     }
     resp(['ok' => true, 'backups' => $out]);
 }
@@ -28,7 +39,7 @@ if ($method === 'GET') {
 $body = json_decode(file_get_contents('php://input'), true);
 if (!is_array($body)) resp(['ok' => false, 'error' => 'invalid body']);
 $name = (string)($body['name'] ?? '');
-if (!preg_match('/^bank_\d{8}_\d{6}_[0-9a-f]{4}\.json$/', $name)) resp(['ok' => false, 'error' => 'invalid name']);
+if (!preg_match('/^(bank_\d{8}_\d{6}_[0-9a-f]{4}\.json|origin\.json)$/', $name)) resp(['ok' => false, 'error' => 'invalid name']);
 $path = $dir . '/' . $name;
 if (!is_file($path)) resp(['ok' => false, 'error' => 'not found']);
 $json = file_get_contents($path);

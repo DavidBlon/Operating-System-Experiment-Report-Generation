@@ -477,6 +477,10 @@
         }
         .backup-item .backup-time { flex: 1; }
         .backup-item .backup-size { color: #888; min-width: 64px; text-align: right; }
+        .backup-badge {
+            display: inline-block; background: #e6f6e6; color: #1d7c1d; border: 1px solid #9ed99e;
+            border-radius: 3px; font-size: 11px; padding: 0 6px; margin-left: 6px;
+        }
 
         /* ─── 响应式：窄屏适配 ─── */
         @media (max-width: 900px) {

@@ -2775,7 +2775,8 @@ function openBackupPanel() {
             }
             box.innerHTML = j.backups.map(b =>
                 '<div class="backup-item">'
-                + '<span class="backup-time">' + escapeHtml(b.time) + '</span>'
+                + '<span class="backup-time">' + escapeHtml(b.time)
+                + (b.origin ? ' <span class="backup-badge">初始版本 · 永久保留</span>' : '') + '</span>'
                 + '<span class="backup-size">' + escapeHtml(b.size) + '</span>'
                 + '<button class="manage-btn" onclick="restoreBackup(\'' + b.name + '\')">恢复</button>'
                 + '</div>'
