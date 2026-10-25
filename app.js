@@ -15,6 +15,7 @@ function applyDeviceName(name, suffix) {
         deviceOverlay.style.display = 'none';
         cmdInputRef.disabled = false;
         cmdInputRef.focus();
+        syncExperimentsFromServer();
         return;
     }
     deviceName = name + suffix;
@@ -42,6 +43,7 @@ function applyDeviceName(name, suffix) {
     cmdInputRef.disabled = false;
     cmdInputRef.focus();
     saveVmSnapshot();
+    syncExperimentsFromServer();
 }
 deviceInput.focus();
 const state = {
@@ -2692,6 +2694,48 @@ function saveExperiments() {
     catch (e) {
         console.warn('保存自定义实验数据失败', e);
     }
+    pushExperimentsToServer();
+}
+// ─── 自定义题目的服务器同步（数据库为准，localStorage 作离线缓存）───
+const EXP_API = 'api/experiments.php';
+let expPushTimer = null;
+let applyingServerData = false;
+// 登录后拉取该用户的题目；服务器无记录时把本地数据作为初始版本上传
+function syncExperimentsFromServer() {
+    if (!state.currentUser) return;
+    fetch(EXP_API + '?user=' + encodeURIComponent(state.currentUser))
+        .then(r => r.json())
+        .then(j => {
+            if (!j || j.ok !== true) return;
+            if (Array.isArray(j.data) && j.data.length > 0) {
+                applyingServerData = true;
+                experiments = j.data;
+                saveExperiments();          // 更新本地缓存（此轮不再回传服务器）
+                applyingServerData = false;
+                renderShortcutPanel();
+                renderEditorShortcutPanel();
+                if (typeof manage !== 'undefined' && manage.selectedExpId) {
+                    renderManageExpList();
+                    renderManageItemsList();
+                }
+            }
+            else {
+                pushExperimentsToServer();  // 服务器为空：上传本地初始版本
+            }
+        })
+        .catch(e => console.warn('题目服务器同步失败（离线？）', e));
+}
+// 防抖上传（失败静默，本地缓存仍在）
+function pushExperimentsToServer() {
+    if (!state.currentUser || applyingServerData) return;
+    clearTimeout(expPushTimer);
+    expPushTimer = setTimeout(function () {
+        fetch(EXP_API, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ user: state.currentUser, data: experiments })
+        }).catch(e => console.warn('题目上传服务器失败', e));
+    }, 800);
 }
 function getExpById(eid) {
     return experiments.find(e => e.id === eid);

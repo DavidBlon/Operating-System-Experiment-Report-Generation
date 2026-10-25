@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>username@username-VirtualBox: ~</title>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self';">
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='4' fill='%23300a24'/%3E%3Ctext x='5' y='22' font-family='monospace' font-size='13' fill='%238ae234'%3E%3E_%3C/text%3E%3C/svg%3E">
-    <link rel="stylesheet" href="styles.css?v=3">
+    <link rel="stylesheet" href="styles.css?v=4">
 </head>
 <body>
 
@@ -104,7 +104,9 @@
     <span class="help-section">虚拟机快照</span>
     <strong>17.</strong> 终端里的文件、用户、组改动会自动保存，刷新后继续上次的环境<br>
     <strong>18.</strong> 需要全新环境时点击 <button class="manage-btn" style="padding:2px 10px;cursor:pointer;" onclick="resetVm()">🔄 重置虚拟机</button><br>
-    <strong>19.</strong> 支持 <strong>|</strong> 管道、<strong>&gt;</strong> / <strong>&gt;&gt;</strong> 重定向、<strong>&amp;&amp;</strong> 与 <strong>;</strong> 命令链，以及 grep/head/tail/wc/sort 等命令
+    <strong>19.</strong> 支持 <strong>|</strong> 管道、<strong>&gt;</strong> / <strong>&gt;&gt;</strong> 重定向、<strong>&amp;&amp;</strong> 与 <strong>;</strong> 命令链，以及 grep/head/tail/wc/sort 等命令<br>
+    <span class="help-section">服务器同步</span>
+    <strong>20.</strong> 自定义题目会同步保存到<strong>服务器数据库</strong>（按用户名隔离），换设备/换浏览器登录同名也能取回
 </div>
 
 <div class="editor-overlay" id="scriptEditorOverlay">
@@ -198,7 +200,7 @@
     </div>
 </div>
 
-<script src="app.js?v=3"></script>
+<script src="app.js?v=4"></script>
 
 </body>
 </html>
