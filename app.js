@@ -11,12 +11,10 @@ function applyDeviceName(name, suffix) {
     // 同名快照存在时直接恢复上次的虚拟机状态（文件、用户、组）
     if (tryRestoreVm(name)) {
         state.currentUser = name;
-        userLoggedIn = true;
         updatePrompt();
         deviceOverlay.style.display = 'none';
         cmdInputRef.disabled = false;
         cmdInputRef.focus();
-        syncExperimentsFromServer();
         return;
     }
     deviceName = name + suffix;
@@ -44,8 +42,6 @@ function applyDeviceName(name, suffix) {
     cmdInputRef.disabled = false;
     cmdInputRef.focus();
     saveVmSnapshot();
-    userLoggedIn = true;
-    syncExperimentsFromServer();
 }
 deviceInput.focus();
 const state = {
@@ -2717,95 +2713,38 @@ function saveExperiments() {
     }
     pushExperimentsToServer();
 }
-// ─── 自定义题目的服务器同步（数据库为准，localStorage 作离线缓存）───
+// ─── 共享题库的服务器同步（数据库只存一份，谁都能改，改完全员可见）───
 const EXP_API = 'api/experiments.php';
 let expPushTimer = null;
 let applyingServerData = false;
-let userLoggedIn = false;
-// 从服务器加载全局默认题库（数据库驱动；离线或无 PHP 时回退内置版本）
-function loadDefaultExperimentsFromServer() {
-    fetch(EXP_API + '?user=%23default%23')
+let expSessionDirty = false;   // 本次会话是否已编辑（编辑后不被迟到的拉取覆盖）
+// 页面加载后拉取共享题库：服务器为准刷新界面与离线缓存
+function loadSharedExperimentsFromServer() {
+    fetch(EXP_API)
         .then(r => r.json())
         .then(j => {
             if (!j || j.ok !== true || !Array.isArray(j.data) || j.data.length === 0) return;
-            const dbDefaults = j.data.map(materializeExp);
-            DEFAULT_EXPERIMENTS_INLINE.length = 0;
-            DEFAULT_EXPERIMENTS_INLINE.push.apply(DEFAULT_EXPERIMENTS_INLINE, dbDefaults);
-            // 未登录且本地没有自己的修改 → 直接展示数据库默认题库
-            let hasLocalData = false;
-            try { hasLocalData = !!localStorage.getItem(EXP_STORAGE_KEY); } catch (e) { }
-            if (!userLoggedIn && !hasLocalData) {
-                experiments = JSON.parse(JSON.stringify(DEFAULT_EXPERIMENTS_INLINE));
-                renderShortcutPanel();
-                renderEditorShortcutPanel();
-            }
+            if (expSessionDirty) return; // 已开始编辑，忽略迟到的拉取响应
+            applyingServerData = true;
+            experiments = j.data.map(materializeExp);
+            saveExperiments();          // 刷新本地离线缓存（此轮不回传服务器）
+            applyingServerData = false;
+            renderShortcutPanel();
+            renderEditorShortcutPanel();
         })
-        .catch(e => console.warn('默认题库加载失败（使用内置版本）', e));
+        .catch(e => console.warn('共享题库加载失败（使用本地缓存/内置版本）', e));
 }
-// 把当前题库发布为全局默认（需要管理密码，写入数据库 #default# 保留行）
-function publishDefaultExperiments() {
-    const key = window.prompt('发布后将成为所有人打开页面看到的默认题库。\n请输入管理密码：');
-    if (key === null || key === '') return;
-    fetch(EXP_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ user: '#default#', admin_key: key, data: experiments })
-    })
-        .then(r => r.json())
-        .then(j => {
-            if (j && j.ok === true) alert('已发布为默认题库！\n之后所有人打开页面都会看到这份题库。');
-            else alert('发布失败：' + ((j && j.error) || '管理密码错误'));
-        })
-        .catch(() => alert('发布失败：网络错误'));
-}
-window.publishDefaultExperiments = publishDefaultExperiments;
-// 登录后拉取该用户的题目；服务器无记录时，本地未定制则采用数据库默认题库
-function syncExperimentsFromServer() {
-    if (!state.currentUser) return;
-    fetch(EXP_API + '?user=' + encodeURIComponent(state.currentUser))
-        .then(r => r.json())
-        .then(j => {
-            if (!j || j.ok !== true) return;
-            if (Array.isArray(j.data) && j.data.length > 0) {
-                applyingServerData = true;
-                experiments = j.data.map(materializeExp);
-                saveExperiments();          // 更新本地缓存（此轮不再回传服务器）
-                applyingServerData = false;
-                renderShortcutPanel();
-                renderEditorShortcutPanel();
-                if (typeof manage !== 'undefined' && manage.selectedExpId) {
-                    renderManageExpList();
-                    renderManageItemsList();
-                }
-            }
-            else {
-                // 服务器没有该用户记录：本地与内置默认一致 → 采用数据库默认；
-                // 本地有改动 → 保留并上传，不丢用户已有的自定义
-                fetch(EXP_API + '?user=%23default%23').then(r2 => r2.json()).then(d2 => {
-                    if (!d2 || d2.ok !== true || !Array.isArray(d2.data) || d2.data.length === 0) return;
-                    if (JSON.stringify(experiments) === JSON.stringify(DEFAULT_EXPERIMENTS_INLINE)) {
-                        experiments = d2.data.map(materializeExp);
-                        renderShortcutPanel();
-                        renderEditorShortcutPanel();
-                    }
-                    else {
-                        pushExperimentsToServer();
-                    }
-                }).catch(() => { });
-            }
-        })
-        .catch(e => console.warn('题目服务器同步失败（离线？）', e));
-}
-// 防抖上传（失败静默，本地缓存仍在）
+// 防抖上传共享题库（失败静默，本地缓存仍在）
 function pushExperimentsToServer() {
-    if (!state.currentUser || applyingServerData) return;
+    if (applyingServerData) return;
+    expSessionDirty = true;
     clearTimeout(expPushTimer);
     expPushTimer = setTimeout(function () {
         fetch(EXP_API, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ user: state.currentUser, data: experiments })
-        }).catch(e => console.warn('题目上传服务器失败', e));
+            body: JSON.stringify({ data: experiments })
+        }).catch(e => console.warn('题库上传服务器失败', e));
     }, 800);
 }
 function getExpById(eid) {
@@ -3924,5 +3863,5 @@ window.resetVm = function () {
 // ─── 初始化：加载持久化数据 + 渲染两个面板 ───
 loadExperiments();
 renderShortcutPanel();
-loadDefaultExperimentsFromServer();
+loadSharedExperimentsFromServer();
 renderEditorShortcutPanel();
